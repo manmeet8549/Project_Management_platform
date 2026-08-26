@@ -32,11 +32,9 @@ export function FinalCTA() {
 
         {/* Right Side: CTA Button */}
         <div className="shrink-0 relative z-10 w-full md:w-auto flex justify-center md:justify-end">
-          <Link href="/" className="w-full sm:w-auto">
-            <button className="w-full sm:w-auto bg-[#FFD93D] text-[#121210] font-black text-sm md:text-base px-6 py-3.5 rounded-xl border-3 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap">
-              <span>Get Started Free</span>
-              <ArrowRight className="w-4 h-4 stroke-[3]" />
-            </button>
+          <Link href="/" className="w-full sm:w-auto bg-[#FFD93D] text-[#121210] font-black text-sm md:text-base px-6 py-3.5 rounded-xl border-3 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap inline-flex">
+            <span>Get Started Free</span>
+            <ArrowRight className="w-4 h-4 stroke-[3]" />
           </Link>
         </div>
 

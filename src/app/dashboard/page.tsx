@@ -122,11 +122,9 @@ export default function DashboardPage() {
       
       {/* Back Button to Landing Page */}
       <div className="max-w-[1440px] mx-auto mb-6">
-        <Link href="/">
-          <button className="bg-white hover:bg-zinc-50 text-black font-extrabold text-xs md:text-sm px-4 py-2 rounded-lg border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all flex items-center gap-1.5 cursor-pointer">
-            <ArrowLeft className="w-4 h-4 stroke-[3]" />
-            <span>Back to Home</span>
-          </button>
+        <Link href="/" className="bg-white hover:bg-zinc-50 text-black font-extrabold text-xs md:text-sm px-4 py-2 rounded-lg border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all inline-flex items-center gap-1.5 cursor-pointer">
+          <ArrowLeft className="w-4 h-4 stroke-[3]" />
+          <span>Back to Home</span>
         </Link>
       </div>
 
