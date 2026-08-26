@@ -1,103 +1,70 @@
-import Image from "next/image";
+import React from 'react';
+import { PublicHeader } from '@/components/layout/PublicHeader';
+import { Hero } from '@/components/landing/Hero';
+import { Features } from '@/components/landing/Features';
+import { PainPoints } from '@/components/landing/PainPoints';
+import { FinalCTA } from '@/components/landing/FinalCTA';
 
-export default function Home() {
+export default function HomePage() {
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <div className="min-h-screen bg-[#FAF8F5] bg-dot-grid text-[#121210] flex flex-col font-sans relative selection:bg-[#FFD93D] selection:text-black">
+      
+      {/* ========================================================================= */}
+      {/* BACKGROUND DECORATIONS & SHAPES */}
+      {/* ========================================================================= */}
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      {/* 1. Top-Left Soft Lavender Blob */}
+      <div className="absolute -top-16 -left-16 sm:-top-24 sm:-left-24 w-52 h-52 sm:w-72 sm:h-72 rounded-full bg-[#C4B5FD]/70 z-0 pointer-events-none" />
+
+      {/* 2. Top-Left Yellow Star Sparkle */}
+      <div className="absolute top-8 left-16 sm:left-28 z-0 pointer-events-none">
+        <svg viewBox="0 0 24 24" className="w-6 h-6 sm:w-7 sm:h-7 text-black fill-[#FFD93D] stroke-black stroke-[2]">
+          <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" />
+        </svg>
+      </div>
+
+      {/* 3. Top-Right Subtle Dot Grid behind Hero Flowchart */}
+      <div className="absolute right-6 sm:right-16 top-16 w-32 h-48 bg-[radial-gradient(circle,#000_1.5px,transparent_1.5px)] [background-size:10px_10px] opacity-15 z-0 pointer-events-none hidden md:block" />
+
+      {/* 4. Mid-Right Yellow Angled Polygon Slice */}
+      <div className="absolute right-0 top-72 sm:top-80 w-16 sm:w-24 md:w-32 h-44 sm:h-56 bg-[#FFD93D] border-l-4 border-y-4 border-black rounded-l-3xl rotate-12 translate-x-4 sm:translate-x-8 z-0 pointer-events-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hidden sm:block" />
+
+      {/* 5. Middle-Left Purple Dot Grid Pattern */}
+      <div className="absolute left-0 sm:left-4 top-[48%] w-24 sm:w-32 h-36 bg-[radial-gradient(circle,#8B5CF6_2.5px,transparent_2.5px)] [background-size:12px_12px] opacity-65 z-0 pointer-events-none hidden sm:block" />
+
+      {/* 6. Middle-Right Vibrant Red Circle */}
+      <div className="absolute -right-12 sm:-right-16 top-[54%] w-28 sm:w-36 h-28 sm:h-36 rounded-full bg-[#FF6B6B] border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] z-0 pointer-events-none" />
+
+      {/* 7. Bottom-Left Red Circle */}
+      <div className="absolute -left-10 -bottom-6 w-24 sm:w-32 h-24 sm:h-32 rounded-full bg-[#FF6B6B] border-4 border-black z-0 pointer-events-none" />
+
+      {/* ========================================================================= */}
+      {/* MAIN CONTENT LAYOUT */}
+      {/* ========================================================================= */}
+      <div className="relative z-10 flex flex-col flex-grow">
+        
+        {/* Navigation Header */}
+        <PublicHeader />
+
+        {/* Core Landing Page Sections */}
+        <main className="flex-grow">
+          {/* Fold 1: Hero Section with 5-Step Flowchart */}
+          <Hero />
+
+          {/* Fold 2: Capabilities 3x3 Card Grid */}
+          <Features />
+
+          {/* Fold 3: Chaotic Pain Points List */}
+          <PainPoints />
+
+          {/* Fold 4: Final Rocket CTA Card */}
+          <FinalCTA />
+        </main>
+
+        {/* Bottom Dotted Matrix Bar */}
+        <div className="w-64 sm:w-80 h-6 bg-[radial-gradient(circle,#000_1.5px,transparent_1.5px)] [background-size:8px_8px] opacity-25 mx-auto mb-6 pointer-events-none" />
+      </div>
+
     </div>
   );
 }
