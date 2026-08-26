@@ -14,9 +14,9 @@ import {
   ArrowLeft,
   ArrowRight,
   Bot,
-  User,
-  CheckCircle,
-  CalendarDays
+  CalendarDays,
+  FolderPlus,
+  FileText
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -442,16 +442,16 @@ export default function DashboardPage() {
             <div className="space-y-4">
               {[
                 { 
-                  text: 'You created a new project "AI Dashboard"', 
+                  text: 'Created a new project "AI Dashboard"', 
                   time: '2h ago',
-                  icon: Folder,
+                  icon: FolderPlus,
                   iconBg: 'bg-[#FF6B6B]',
                   iconColor: 'text-white'
                 },
                 { 
-                  text: 'Sarah completed task "UI Design System"', 
+                  text: 'Completed task "UI Design System"', 
                   time: '5h ago',
-                  icon: CheckCircle,
+                  icon: CheckCircle2,
                   iconBg: 'bg-[#FFD93D]',
                   iconColor: 'text-black'
                 },
@@ -463,11 +463,11 @@ export default function DashboardPage() {
                   iconColor: 'text-black'
                 },
                 { 
-                  text: 'Mike added a new note in "Project Atlas"', 
+                  text: 'Added a new note in "Project Atlas"', 
                   time: '2d ago',
-                  icon: User,
-                  iconBg: 'bg-[#121210]',
-                  iconColor: 'text-white'
+                  icon: FileText,
+                  iconBg: 'bg-[#C4B5FD]',
+                  iconColor: 'text-black'
                 },
               ].map((activity, idx) => {
                 const ActIcon = activity.icon;

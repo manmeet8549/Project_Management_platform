@@ -15,8 +15,6 @@ import {
   MessageSquare, 
   CheckCircle2, 
   BarChart3, 
-  Users, 
-  UserPlus,
   GripVertical,
   Search,
   ChevronDown,
@@ -24,7 +22,11 @@ import {
   Lock,
   Edit3,
   Trash2,
-  SlidersHorizontal
+  SlidersHorizontal,
+  ChevronLeft,
+  ChevronRight,
+  Sparkles,
+  Zap
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -49,11 +51,24 @@ interface NoteItem {
   }[];
 }
 
+interface ActivityItem {
+  id: string;
+  actionTitle: string;
+  itemBadge: string;
+  badgeBg: string;
+  fromBadge?: string;
+  toBadge?: string;
+  subIcon: React.ComponentType<{ className?: string }>;
+  subIconBg: string;
+  subLabel: string;
+  timestamp: string;
+}
+
 const credentialsData: CredentialItem[] = [
   {
     id: '1',
     title: 'GitHub Repository',
-    subtext: 'Username: project-admin',
+    subtext: 'Account: project-admin',
     category: 'Development',
     categoryBg: 'bg-[#FFEAEA] text-[#B91C1C]',
     addedOn: 'May 18, 2025',
@@ -69,7 +84,7 @@ const credentialsData: CredentialItem[] = [
   {
     id: '3',
     title: 'Vercel Deployment',
-    subtext: 'Team: ecommerce-team',
+    subtext: 'Scope: Production Deployment',
     category: 'Deployment',
     categoryBg: 'bg-[#F3E8FF] text-[#7C3AED]',
     addedOn: 'May 19, 2025',
@@ -143,17 +158,17 @@ const notesData: NoteItem[] = [
   },
   {
     id: '2',
-    title: 'Client Meeting Notes',
+    title: 'Project Brainstorming Notes',
     excerpt: 'Discussed design preferences, features and timeline...',
     date: 'May 20, 2025',
     updated: 'Updated 2 days ago',
     sections: [
       {
-        heading: '1. Meeting Highlights',
+        heading: '1. Key Decisions',
         items: [
           'Aligned on neobrutalist design system with high contrast borders.',
           'Target launch date confirmed for August 30, 2025.',
-          'Weekly sync scheduled for every Tuesday.'
+          'Weekly milestone checks scheduled for every Tuesday.'
         ]
       }
     ]
@@ -228,8 +243,83 @@ const notesData: NoteItem[] = [
   }
 ];
 
+const activityTimelineData: ActivityItem[] = [
+  {
+    id: '1',
+    actionTitle: 'Task Completed',
+    itemBadge: 'Database Schema Design',
+    badgeBg: 'bg-[#DCFCE7] text-[#15803D]',
+    subIcon: CheckCircle2,
+    subIconBg: 'bg-[#DCFCE7] text-[#15803D]',
+    subLabel: 'Task Completed',
+    timestamp: 'May 22, 2025 • 10:30 AM',
+  },
+  {
+    id: '2',
+    actionTitle: 'Task Moved',
+    itemBadge: 'Implement Authentication',
+    badgeBg: 'bg-[#FEF3C7] text-[#D97706]',
+    fromBadge: 'To Do',
+    toBadge: 'In Progress',
+    subIcon: CheckSquare,
+    subIconBg: 'bg-[#FEF3C7] text-[#D97706]',
+    subLabel: 'Task Updated',
+    timestamp: 'May 22, 2025 • 09:45 AM',
+  },
+  {
+    id: '3',
+    actionTitle: 'Note Added',
+    itemBadge: 'Client Requirements',
+    badgeBg: 'bg-[#F3E8FF] text-[#7C3AED]',
+    subIcon: FileText,
+    subIconBg: 'bg-[#F3E8FF] text-[#7C3AED]',
+    subLabel: 'Note Added',
+    timestamp: 'May 22, 2025 • 09:15 AM',
+  },
+  {
+    id: '4',
+    actionTitle: 'Credential Added',
+    itemBadge: 'Production API Key',
+    badgeBg: 'bg-[#FFEAEA] text-[#B91C1C]',
+    subIcon: Lock,
+    subIconBg: 'bg-[#FFEAEA] text-[#B91C1C]',
+    subLabel: 'Credential Added',
+    timestamp: 'May 21, 2025 • 06:20 PM',
+  },
+  {
+    id: '5',
+    actionTitle: 'Note Updated',
+    itemBadge: 'Project Requirements',
+    badgeBg: 'bg-[#F3E8FF] text-[#7C3AED]',
+    subIcon: FileText,
+    subIconBg: 'bg-[#F3E8FF] text-[#7C3AED]',
+    subLabel: 'Note Updated',
+    timestamp: 'May 21, 2025 • 04:10 PM',
+  },
+  {
+    id: '6',
+    actionTitle: 'Task Completed',
+    itemBadge: 'Setup Project Repository',
+    badgeBg: 'bg-[#DCFCE7] text-[#15803D]',
+    subIcon: CheckCircle2,
+    subIconBg: 'bg-[#DCFCE7] text-[#15803D]',
+    subLabel: 'Task Completed',
+    timestamp: 'May 21, 2025 • 11:30 AM',
+  },
+  {
+    id: '7',
+    actionTitle: 'Task Created',
+    itemBadge: 'Payment Integration',
+    badgeBg: 'bg-[#E0F2FE] text-[#0369A1]',
+    subIcon: Plus,
+    subIconBg: 'bg-[#E0F2FE] text-[#0369A1]',
+    subLabel: 'Task Created',
+    timestamp: 'May 20, 2025 • 08:50 PM',
+  },
+];
+
 export default function ProjectDetailsPage() {
-  const [activeTab, setActiveTab] = useState<'tasks' | 'credentials' | 'notes' | 'activity'>('notes');
+  const [activeTab, setActiveTab] = useState<'tasks' | 'credentials' | 'notes' | 'activity'>('tasks');
   const [selectedNoteId, setSelectedNoteId] = useState<string>('1');
 
   const selectedNote = notesData.find(n => n.id === selectedNoteId) || notesData[0];
@@ -263,9 +353,11 @@ export default function ProjectDetailsPage() {
           <div className="flex items-start gap-4 max-w-2xl">
             <div className={cn(
               "w-14 h-14 sm:w-16 sm:h-16 rounded-2xl border-3 border-black flex items-center justify-center shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] shrink-0 text-black",
-              activeTab === 'notes' ? 'bg-[#FFD93D]' : 'bg-[#FF6B6B]'
+              activeTab === 'activity' ? 'bg-[#C4B5FD]' : activeTab === 'notes' ? 'bg-[#FFD93D]' : 'bg-[#FF6B6B]'
             )}>
-              {activeTab === 'notes' ? (
+              {activeTab === 'activity' ? (
+                <Activity className="w-7 h-7 sm:w-8 sm:h-8 stroke-[2.5]" />
+              ) : activeTab === 'notes' ? (
                 <FileText className="w-7 h-7 sm:w-8 sm:h-8 stroke-[2.5]" />
               ) : activeTab === 'credentials' ? (
                 <Lock className="w-7 h-7 sm:w-8 sm:h-8 stroke-[2.5]" />
@@ -282,7 +374,9 @@ export default function ProjectDetailsPage() {
                 </span>
               </h1>
               <p className="text-xs sm:text-sm font-bold text-zinc-600 mt-1.5 leading-relaxed">
-                {activeTab === 'notes'
+                {activeTab === 'activity'
+                  ? "Track all the activities and changes happening in this project."
+                  : activeTab === 'notes'
                   ? "Manage and organize all your project notes in one place."
                   : activeTab === 'credentials'
                   ? "Manage all your project credentials and secure keys in one place."
@@ -394,23 +488,488 @@ export default function ProjectDetailsPage() {
         </div>
 
         {/* ========================================================================= */}
-        {/* TAB CONTENT: NOTES VIEW (MASTER-DETAIL SPLIT) */}
+        {/* TAB CONTENT: TASKS VIEW */}
+        {/* ========================================================================= */}
+        {activeTab === 'tasks' && (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-10">
+            
+            {/* KANBAN BOARD SECTION (9 Columns) */}
+            <div className="lg:col-span-9 grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+              
+              {/* COLUMN 1: TO DO */}
+              <div className="space-y-4">
+                <div className="bg-[#FF6B6B] border-3 border-black p-3 rounded-xl shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <GripVertical className="w-4 h-4 text-black stroke-[2.5]" />
+                    <span className="font-black text-sm text-black uppercase tracking-wider">To Do</span>
+                    <span className="w-5 h-5 bg-black text-white rounded-full text-[10px] font-black flex items-center justify-center">
+                      6
+                    </span>
+                  </div>
+
+                  <button className="bg-white text-black font-black text-[10px] px-2.5 py-1 rounded-md border border-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] hover:bg-zinc-50 cursor-pointer flex items-center gap-1">
+                    <Plus className="w-3 h-3 stroke-[3]" />
+                    <span>Add Task</span>
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  {[
+                    { title: 'Design Homepage', prio: 'High Priority', prioBg: 'bg-[#FF6B6B]', date: 'May 28', count: 2 },
+                    { title: 'Setup Product Database', prio: 'Medium Priority', prioBg: 'bg-[#FFD93D]', date: 'May 30', count: 1 },
+                    { title: 'Create Product Listing Page', prio: 'Low Priority', prioBg: 'bg-[#C4B5FD]', date: 'Jun 02', count: 0 },
+                    { title: 'Setup Payment Gateway', prio: 'High Priority', prioBg: 'bg-[#FF6B6B]', date: 'Jun 05', count: 3 },
+                    { title: 'Design Checkout Flow', prio: 'Medium Priority', prioBg: 'bg-[#FFD93D]', date: 'Jun 07', count: 1 },
+                  ].map((task, idx) => (
+                    <div key={idx} className="bg-white border-2 border-black p-4 rounded-xl shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] space-y-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <h4 className="font-black text-sm text-black">{task.title}</h4>
+                        <button className="text-zinc-400 hover:text-black">
+                          <MoreVertical className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-3 text-[11px] font-bold text-zinc-600">
+                        <div className="flex items-center gap-1">
+                          <span className={cn("w-2 h-2 rounded-full", task.prioBg)} />
+                          <span>{task.prio}</span>
+                        </div>
+                        <div className="flex items-center gap-1 text-zinc-500">
+                          <Calendar className="w-3.5 h-3.5" />
+                          <span>{task.date}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 text-xs font-bold text-zinc-500 pt-1">
+                        <MessageSquare className="w-3.5 h-3.5" />
+                        <span>{task.count} {task.count === 1 ? 'Comment' : 'Comments'}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* COLUMN 2: IN PROGRESS */}
+              <div className="space-y-4">
+                <div className="bg-[#FFD93D] border-3 border-black p-3 rounded-xl shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <GripVertical className="w-4 h-4 text-black stroke-[2.5]" />
+                    <span className="font-black text-sm text-black uppercase tracking-wider">In Progress</span>
+                    <span className="w-5 h-5 bg-black text-white rounded-full text-[10px] font-black flex items-center justify-center">
+                      3
+                    </span>
+                  </div>
+
+                  <button className="bg-white text-black font-black text-[10px] px-2.5 py-1 rounded-md border border-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] hover:bg-zinc-50 cursor-pointer flex items-center gap-1">
+                    <Plus className="w-3 h-3 stroke-[3]" />
+                    <span>Add Task</span>
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  {[
+                    { title: 'Implement User Authentication', prio: 'High Priority', prioBg: 'bg-[#FF6B6B]', date: 'May 25', count: 3, comment: 'Please use Supabase Auth for better security.', time: '2h ago' },
+                    { title: 'Build Shopping Cart', prio: 'Medium Priority', prioBg: 'bg-[#FFD93D]', date: 'May 27', count: 2, comment: 'Add coupon code functionality as well.', time: '5h ago' },
+                    { title: 'Admin Dashboard UI', prio: 'Low Priority', prioBg: 'bg-[#C4B5FD]', date: 'Jun 01', count: 1, comment: "Let's keep it minimal and clean.", time: '1d ago' },
+                  ].map((task, idx) => (
+                    <div key={idx} className="bg-white border-2 border-black p-4 rounded-xl shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] space-y-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <h4 className="font-black text-sm text-black">{task.title}</h4>
+                        <button className="text-zinc-400 hover:text-black">
+                          <MoreVertical className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-3 text-[11px] font-bold text-zinc-600">
+                        <div className="flex items-center gap-1">
+                          <span className={cn("w-2 h-2 rounded-full", task.prioBg)} />
+                          <span>{task.prio}</span>
+                        </div>
+                        <div className="flex items-center gap-1 text-zinc-500">
+                          <Calendar className="w-3.5 h-3.5" />
+                          <span>{task.date}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 text-xs font-bold text-zinc-500 pt-0.5">
+                        <MessageSquare className="w-3.5 h-3.5" />
+                        <span>{task.count} Comments</span>
+                      </div>
+
+                      {/* Personal Task Note Callout */}
+                      <div className="bg-[#F3E8FF] border border-black/20 p-2.5 rounded-lg flex items-start gap-2 text-xs">
+                        <MessageSquare className="w-3.5 h-3.5 text-[#7C3AED] stroke-[2.5] shrink-0 mt-0.5" />
+                        <div className="flex-grow min-w-0">
+                          <div className="flex items-center justify-between gap-1">
+                            <span className="font-black text-black text-[11px]">Note</span>
+                            <span className="text-[10px] font-bold text-zinc-400">{task.time}</span>
+                          </div>
+                          <p className="text-[11px] font-bold text-zinc-600 leading-tight mt-0.5">
+                            {task.comment}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* COLUMN 3: COMPLETED */}
+              <div className="space-y-4">
+                <div className="bg-[#C4B5FD] border-3 border-black p-3 rounded-xl shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <GripVertical className="w-4 h-4 text-black stroke-[2.5]" />
+                    <span className="font-black text-sm text-black uppercase tracking-wider">Completed</span>
+                    <span className="w-5 h-5 bg-black text-white rounded-full text-[10px] font-black flex items-center justify-center">
+                      5
+                    </span>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  {[
+                    { title: 'Project Setup', prioBg: 'bg-[#C4B5FD]', date: 'May 10' },
+                    { title: 'Repository Setup', prioBg: 'bg-[#C4B5FD]', date: 'May 10' },
+                    { title: 'Setup Supabase Project', prioBg: 'bg-[#FFD93D]', date: 'May 12' },
+                    { title: 'Database Schema Design', prioBg: 'bg-[#FFD93D]', date: 'May 15' },
+                    { title: 'Create Wireframes', prioBg: 'bg-[#C4B5FD]', date: 'May 16' },
+                  ].map((task, idx) => (
+                    <div key={idx} className="bg-white border-2 border-black p-4 rounded-xl shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-between">
+                      <div>
+                        <h4 className="font-black text-sm text-black">{task.title}</h4>
+                        <div className="flex items-center gap-3 text-[11px] font-bold text-zinc-600 mt-1">
+                          <div className="flex items-center gap-1">
+                            <span className={cn("w-2 h-2 rounded-full", task.prioBg)} />
+                            <span>Priority</span>
+                          </div>
+                          <div className="flex items-center gap-1 text-zinc-500">
+                            <Calendar className="w-3.5 h-3.5" />
+                            <span>{task.date}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <CheckCircle2 className="w-5 h-5 text-[#16A34A] fill-[#DCFCE7] stroke-[2.5] shrink-0" />
+                    </div>
+                  ))}
+
+                  <div className="bg-[#F0FDF4] border-2 border-black p-3.5 rounded-xl shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center gap-3">
+                    <div className="text-2xl">🎉</div>
+                    <div>
+                      <div className="font-black text-xs text-black">Great job!</div>
+                      <div className="text-[11px] font-bold text-zinc-600">
+                        {"You're making excellent progress."}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            {/* RIGHT SIDEBAR PANEL SECTION (3 Columns) */}
+            <div className="lg:col-span-3 space-y-6">
+              
+              {/* WIDGET 1: Project Summary */}
+              <div className="bg-white border-3 border-black p-5 rounded-2xl shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] space-y-4">
+                <div className="flex items-center gap-2 border-b border-zinc-150 pb-3">
+                  <BarChart3 className="w-5 h-5 text-black stroke-[2.5]" />
+                  <h3 className="font-black text-sm uppercase tracking-wide text-black">
+                    Project Summary
+                  </h3>
+                </div>
+
+                <div className="space-y-2.5 text-xs font-bold">
+                  <div className="flex items-center justify-between">
+                    <span className="text-zinc-600">Total Tasks</span>
+                    <span className="font-black text-black">30</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-zinc-600">Completed</span>
+                    <span className="font-black text-[#16A34A]">24</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-zinc-600">In Progress</span>
+                    <span className="font-black text-[#D97706]">3</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-zinc-600">To Do</span>
+                    <span className="font-black text-[#B91C1C]">6</span>
+                  </div>
+
+                  <div className="border-t border-zinc-200 pt-2.5 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-zinc-600">Completion Rate</span>
+                      <span className="font-black text-[#7C3AED] text-sm">80%</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-zinc-600">Days Remaining</span>
+                      <span className="font-black text-[#B91C1C] text-sm">12 days</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* WIDGET 2: Activity Feed */}
+              <div className="bg-white border-3 border-black p-5 rounded-2xl shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] space-y-4">
+                <div className="flex items-center gap-2 border-b border-zinc-150 pb-3">
+                  <Activity className="w-5 h-5 text-black stroke-[2.5]" />
+                  <h3 className="font-black text-sm uppercase tracking-wide text-black">
+                    Activity Feed
+                  </h3>
+                </div>
+
+                <div className="space-y-3.5">
+                  {[
+                    { icon: CheckCircle2, iconBg: 'bg-[#DCFCE7] text-[#15803D]', text: 'Task Completed: Database Schema Design', time: '2h ago' },
+                    { icon: FileText, iconBg: 'bg-[#F3E8FF] text-[#7C3AED]', text: 'Note Added: Design Requirements', time: '5h ago' },
+                    { icon: Plus, iconBg: 'bg-[#E0F2FE] text-[#0369A1]', text: 'Task Created: Design Checkout Flow', time: '1d ago' },
+                    { icon: MessageSquare, iconBg: 'bg-[#FEF3C7] text-[#D97706]', text: 'Comment Added: User Authentication', time: '2d ago' },
+                  ].map((act, idx) => {
+                    const ActIcon = act.icon;
+                    return (
+                      <div key={idx} className="flex items-start justify-between gap-2 text-xs border-b border-zinc-100 pb-2.5 last:border-0 last:pb-0">
+                        <div className="flex items-start gap-2.5 min-w-0">
+                          <div className={cn("w-6 h-6 rounded-md border border-black flex items-center justify-center shrink-0 shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]", act.iconBg)}>
+                            <ActIcon className="w-3.5 h-3.5 stroke-[2.5]" />
+                          </div>
+                          <span className="font-bold text-zinc-700 text-[11px] leading-tight">
+                            {act.text}
+                          </span>
+                        </div>
+                        <span className="text-[10px] font-bold text-zinc-400 shrink-0">
+                          {act.time}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* WIDGET 3: Personal Quick Notes / Milestones */}
+              <div className="bg-[#FFFBEB] border-3 border-black p-5 rounded-2xl shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] space-y-4">
+                <div className="flex items-center gap-2 border-b border-black/10 pb-3">
+                  <Sparkles className="w-5 h-5 text-[#D97706] stroke-[2.5]" />
+                  <h3 className="font-black text-sm uppercase tracking-wide text-black">
+                    Personal Milestones
+                  </h3>
+                </div>
+
+                <div className="space-y-3 text-xs font-bold">
+                  <div className="bg-white border-2 border-black p-3 rounded-xl shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-start gap-2">
+                    <Zap className="w-4 h-4 text-[#D97706] stroke-[2.5] shrink-0 mt-0.5" />
+                    <div>
+                      <div className="font-black text-black">Complete Auth Flow</div>
+                      <div className="text-[10px] font-bold text-zinc-500">Target: Aug 28, 2025</div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white border-2 border-black p-3 rounded-xl shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-start gap-2">
+                    <Lock className="w-4 h-4 text-[#B91C1C] stroke-[2.5] shrink-0 mt-0.5" />
+                    <div>
+                      <div className="font-black text-black">Audit API Keys & Secrets</div>
+                      <div className="text-[10px] font-bold text-zinc-500">Target: Aug 29, 2025</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* TAB CONTENT: ACTIVITY VIEW */}
+        {/* ========================================================================= */}
+        {activeTab === 'activity' && (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start mb-10">
+            
+            {/* LEFT PANEL: FILTERS & SUMMARY (4 Columns) */}
+            <div className="lg:col-span-4 space-y-6">
+              
+              {/* Filter Activity Widget */}
+              <div className="bg-white border-3 border-black p-5 rounded-2xl shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] space-y-4">
+                <h3 className="font-black text-base text-black">Filter Activity</h3>
+
+                <div className="space-y-3">
+                  <button className="w-full bg-white text-black font-extrabold text-xs sm:text-sm px-4 py-2.5 rounded-xl border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center justify-between cursor-pointer hover:bg-zinc-50">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-zinc-600 stroke-[2.5]" />
+                      <span>All Time</span>
+                    </div>
+                    <ChevronDown className="w-4 h-4 stroke-[2.5]" />
+                  </button>
+
+                  <button className="w-full bg-white text-black font-extrabold text-xs sm:text-sm px-4 py-2.5 rounded-xl border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center justify-between cursor-pointer hover:bg-zinc-50">
+                    <div className="flex items-center gap-2">
+                      <SlidersHorizontal className="w-4 h-4 text-zinc-600 stroke-[2.5]" />
+                      <span>All Activity Types</span>
+                    </div>
+                    <ChevronDown className="w-4 h-4 stroke-[2.5]" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Activity Summary Widget */}
+              <div className="bg-white border-3 border-black p-5 rounded-2xl shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] space-y-4">
+                <h3 className="font-black text-base text-black">Activity Summary</h3>
+
+                <div className="space-y-2.5 text-xs font-bold">
+                  {[
+                    { icon: CheckSquare, iconBg: 'bg-[#E0F2FE] text-[#0369A1]', label: 'Tasks Created', count: 18 },
+                    { icon: CheckSquare, iconBg: 'bg-[#FEF3C7] text-[#D97706]', label: 'Tasks Updated', count: 27 },
+                    { icon: CheckCircle2, iconBg: 'bg-[#DCFCE7] text-[#15803D]', label: 'Tasks Completed', count: 14 },
+                    { icon: FileText, iconBg: 'bg-[#F3E8FF] text-[#7C3AED]', label: 'Notes Added', count: 11 },
+                    { icon: FileText, iconBg: 'bg-[#FFEDD5] text-[#C2410C]', label: 'Notes Updated', count: 7 },
+                    { icon: Lock, iconBg: 'bg-[#FFEAEA] text-[#B91C1C]', label: 'Credentials Added', count: 6 },
+                    { icon: Lock, iconBg: 'bg-[#E0F2FE] text-[#0369A1]', label: 'Credentials Updated', count: 3 },
+                  ].map((sum, idx) => {
+                    const SumIcon = sum.icon;
+                    return (
+                      <div key={idx} className="flex items-center justify-between">
+                        <div className="flex items-center gap-2.5">
+                          <div className={cn("w-5 h-5 rounded-md border border-black flex items-center justify-center text-xs shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]", sum.iconBg)}>
+                            <SumIcon className="w-3 h-3 stroke-[2.5]" />
+                          </div>
+                          <span className="text-zinc-700">{sum.label}</span>
+                        </div>
+                        <span className="font-black text-black">{sum.count}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Total Activities Box */}
+              <div className="bg-white border-2 border-black p-4 rounded-xl shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] space-y-1">
+                <div className="text-xs font-black uppercase text-zinc-500">Total Activities</div>
+                <div className="text-3xl font-black text-[#7C3AED]">86</div>
+                <div className="text-xs font-bold text-zinc-500">Across all modules</div>
+              </div>
+
+            </div>
+
+            {/* RIGHT PANEL: ACTIVITY TIMELINE FEED (8 Columns) */}
+            <div className="lg:col-span-8 bg-white border-3 border-black p-6 sm:p-8 rounded-2xl shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] space-y-6">
+              
+              {/* Header & Search */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-200 pb-4">
+                <h2 className="text-xl sm:text-2xl font-black text-black tracking-tight">
+                  Activity Feed
+                </h2>
+
+                <div className="relative w-full sm:w-64">
+                  <Search className="w-4 h-4 text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2 stroke-[2.5]" />
+                  <input 
+                    type="text"
+                    placeholder="Search activities..."
+                    className="w-full bg-white text-black font-bold text-xs sm:text-sm pl-10 pr-3 py-2 rounded-xl border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] focus:outline-none focus:ring-2 focus:ring-black placeholder:text-zinc-400"
+                  />
+                </div>
+              </div>
+
+              {/* Connected Action Timeline Container */}
+              <div className="relative pl-6 sm:pl-8 border-l-2 border-zinc-200 space-y-7 ml-3 my-4">
+                {activityTimelineData.map((act) => {
+                  const SubIcon = act.subIcon;
+                  return (
+                    <div key={act.id} className="relative group">
+                      
+                      {/* Action Sticker Icon Node on Line */}
+                      <div className={cn(
+                        "absolute -left-[37px] sm:-left-[45px] top-0 w-7 h-7 sm:w-8 sm:h-8 rounded-lg border-2 border-black flex items-center justify-center shadow-[1.5px_1.5px_0px_0px_rgba(0,0,0,1)] z-10",
+                        act.subIconBg
+                      )}>
+                        <SubIcon className="w-4 h-4 stroke-[2.5]" />
+                      </div>
+
+                      {/* Timeline Content */}
+                      <div className="space-y-1.5 pt-0.5">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="flex flex-wrap items-center gap-1.5 text-xs sm:text-sm font-bold text-zinc-800">
+                            <span className="font-black text-black">{act.actionTitle}</span>
+                            
+                            <span className={cn(
+                              "px-2.5 py-0.5 rounded-md text-[11px] font-black border border-black/20 shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] inline-block",
+                              act.badgeBg
+                            )}>
+                              {act.itemBadge}
+                            </span>
+
+                            {act.fromBadge && act.toBadge && (
+                              <>
+                                <span className="text-zinc-600">from</span>
+                                <span className="px-2 py-0.5 rounded-md text-[10px] font-black border border-black/20 bg-[#E0F2FE] text-[#0369A1]">
+                                  {act.fromBadge}
+                                </span>
+                                <span className="text-zinc-600">to</span>
+                                <span className="px-2 py-0.5 rounded-md text-[10px] font-black border border-black/20 bg-[#FEF3C7] text-[#D97706]">
+                                  {act.toBadge}
+                                </span>
+                              </>
+                            )}
+                          </div>
+
+                          <span className="text-[10px] sm:text-xs font-bold text-zinc-400 whitespace-nowrap">
+                            {act.timestamp}
+                          </span>
+                        </div>
+
+                        {/* Category Sublabel */}
+                        <div className="flex items-center gap-1.5 text-[11px] font-bold text-zinc-500">
+                          <SubIcon className="w-3.5 h-3.5 text-zinc-600 stroke-[2.5]" />
+                          <span>{act.subLabel}</span>
+                        </div>
+                      </div>
+
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Pagination Row */}
+              <div className="flex items-center justify-center gap-2 border-t border-zinc-200 pt-6">
+                <button className="w-8 h-8 bg-white border-2 border-black rounded-lg shadow-[1.5px_1.5px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center text-zinc-600 hover:text-black cursor-pointer">
+                  <ChevronLeft className="w-4 h-4 stroke-[2.5]" />
+                </button>
+
+                <button className="w-8 h-8 bg-[#FF6B6B] text-black font-black text-xs border-2 border-black rounded-lg shadow-[1.5px_1.5px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center cursor-pointer">
+                  1
+                </button>
+
+                <button className="w-8 h-8 bg-white text-black font-bold text-xs border-2 border-black rounded-lg shadow-[1.5px_1.5px_0px_0px_rgba(0,0,0,1)] hover:bg-zinc-50 flex items-center justify-center cursor-pointer">
+                  2
+                </button>
+
+                <button className="w-8 h-8 bg-white text-black font-bold text-xs border-2 border-black rounded-lg shadow-[1.5px_1.5px_0px_0px_rgba(0,0,0,1)] hover:bg-zinc-50 flex items-center justify-center cursor-pointer">
+                  3
+                </button>
+
+                <button className="w-8 h-8 bg-white text-black font-bold text-xs border-2 border-black rounded-lg shadow-[1.5px_1.5px_0px_0px_rgba(0,0,0,1)] hover:bg-zinc-50 flex items-center justify-center cursor-pointer">
+                  4
+                </button>
+
+                <button className="w-8 h-8 bg-white text-black font-bold text-xs border-2 border-black rounded-lg shadow-[1.5px_1.5px_0px_0px_rgba(0,0,0,1)] hover:bg-zinc-50 flex items-center justify-center cursor-pointer">
+                  5
+                </button>
+
+                <button className="w-8 h-8 bg-white border-2 border-black rounded-lg shadow-[1.5px_1.5px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center text-zinc-600 hover:text-black cursor-pointer">
+                  <ChevronRight className="w-4 h-4 stroke-[2.5]" />
+                </button>
+              </div>
+
+            </div>
+
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* TAB CONTENT: NOTES VIEW */}
         {/* ========================================================================= */}
         {activeTab === 'notes' && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start mb-10">
-            
-            {/* LEFT PANEL: NOTES LIST & SUMMARY (5 Columns) */}
             <div className="lg:col-span-5 space-y-6">
-              
-              {/* Main List Box */}
               <div className="bg-white border-3 border-black p-5 rounded-2xl shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] space-y-5">
-                
-                {/* Header & Search / Filter */}
                 <div className="flex items-center justify-between gap-3">
                   <h3 className="font-black text-xl text-black">All Notes</h3>
 
                   <div className="flex items-center gap-2">
-                    {/* Search notes input */}
                     <div className="relative w-36 sm:w-48">
                       <Search className="w-3.5 h-3.5 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2 stroke-[2.5]" />
                       <input 
@@ -420,14 +979,12 @@ export default function ProjectDetailsPage() {
                       />
                     </div>
 
-                    {/* Filter Icon Button */}
                     <button className="bg-white text-black p-1.5 rounded-xl border-2 border-black shadow-[1.5px_1.5px_0px_0px_rgba(0,0,0,1)] hover:bg-zinc-50 cursor-pointer">
                       <SlidersHorizontal className="w-3.5 h-3.5 stroke-[2.5]" />
                     </button>
                   </div>
                 </div>
 
-                {/* Note Items List */}
                 <div className="space-y-3">
                   {notesData.map((note) => {
                     const isSelected = note.id === selectedNoteId;
@@ -454,15 +1011,12 @@ export default function ProjectDetailsPage() {
                   })}
                 </div>
 
-                {/* Add New Note Button */}
                 <button className="w-full bg-white hover:bg-zinc-50 text-black font-extrabold text-xs py-3 rounded-xl border-2 border-black border-dashed shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all flex items-center justify-center gap-2 cursor-pointer">
                   <Plus className="w-4 h-4 stroke-[3]" />
                   <span>Add New Note</span>
                 </button>
-
               </div>
 
-              {/* Bottom Summary Box */}
               <div className="bg-white border-2 border-black p-4 rounded-xl shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-around text-center">
                 <div className="w-10 h-10 bg-[#FFD93D] border-2 border-black rounded-xl flex items-center justify-center text-black shrink-0 shadow-[1.5px_1.5px_0px_0px_rgba(0,0,0,1)]">
                   <FileText className="w-5 h-5 stroke-[2.5]" />
@@ -480,13 +1034,9 @@ export default function ProjectDetailsPage() {
                   <div className="text-xs font-black text-black mt-1">May 22, 2025</div>
                 </div>
               </div>
-
             </div>
 
-            {/* RIGHT PANEL: NOTE DETAIL VIEWER (7 Columns) */}
             <div className="lg:col-span-7 bg-white border-3 border-black p-6 sm:p-8 rounded-2xl shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] space-y-6">
-              
-              {/* Header Row: Title, Metadata, Edit & Delete Buttons */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-200 pb-5">
                 <div>
                   <h2 className="text-2xl sm:text-3xl font-black text-black tracking-tight">
@@ -510,7 +1060,6 @@ export default function ProjectDetailsPage() {
                 </div>
               </div>
 
-              {/* Formatted Content Viewer Box */}
               <div className="bg-[#FAF8F5] border-2 border-black/10 rounded-xl p-6 space-y-6 text-sm font-bold text-zinc-800">
                 {selectedNote.sections.map((section, idx) => (
                   <div key={idx} className="space-y-3 border-b border-zinc-200/60 last:border-0 pb-5 last:pb-0">
@@ -525,9 +1074,7 @@ export default function ProjectDetailsPage() {
                   </div>
                 ))}
               </div>
-
             </div>
-
           </div>
         )}
 
@@ -639,307 +1186,6 @@ export default function ProjectDetailsPage() {
                 </div>
               </div>
             </div>
-          </div>
-        )}
-
-        {/* ========================================================================= */}
-        {/* TAB CONTENT: TASKS VIEW */}
-        {/* ========================================================================= */}
-        {activeTab === 'tasks' && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-10">
-            <div className="lg:col-span-9 grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
-              
-              {/* COLUMN 1: TO DO */}
-              <div className="space-y-4">
-                <div className="bg-[#FF6B6B] border-3 border-black p-3 rounded-xl shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <GripVertical className="w-4 h-4 text-black stroke-[2.5]" />
-                    <span className="font-black text-sm text-black uppercase tracking-wider">To Do</span>
-                    <span className="w-5 h-5 bg-black text-white rounded-full text-[10px] font-black flex items-center justify-center">
-                      6
-                    </span>
-                  </div>
-
-                  <button className="bg-white text-black font-black text-[10px] px-2.5 py-1 rounded-md border border-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] hover:bg-zinc-50 cursor-pointer flex items-center gap-1">
-                    <Plus className="w-3 h-3 stroke-[3]" />
-                    <span>Add Task</span>
-                  </button>
-                </div>
-
-                <div className="space-y-4">
-                  {[
-                    { title: 'Design Homepage', prio: 'High Priority', prioBg: 'bg-[#FF6B6B]', date: 'May 28', count: 2 },
-                    { title: 'Setup Product Database', prio: 'Medium Priority', prioBg: 'bg-[#FFD93D]', date: 'May 30', count: 1 },
-                    { title: 'Create Product Listing Page', prio: 'Low Priority', prioBg: 'bg-[#C4B5FD]', date: 'Jun 02', count: 0 },
-                    { title: 'Setup Payment Gateway', prio: 'High Priority', prioBg: 'bg-[#FF6B6B]', date: 'Jun 05', count: 3 },
-                    { title: 'Design Checkout Flow', prio: 'Medium Priority', prioBg: 'bg-[#FFD93D]', date: 'Jun 07', count: 1 },
-                  ].map((task, idx) => (
-                    <div key={idx} className="bg-white border-2 border-black p-4 rounded-xl shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] space-y-3">
-                      <div className="flex items-start justify-between gap-2">
-                        <h4 className="font-black text-sm text-black">{task.title}</h4>
-                        <button className="text-zinc-400 hover:text-black">
-                          <MoreVertical className="w-4 h-4" />
-                        </button>
-                      </div>
-                      <div className="flex items-center gap-3 text-[11px] font-bold text-zinc-600">
-                        <div className="flex items-center gap-1">
-                          <span className={cn("w-2 h-2 rounded-full", task.prioBg)} />
-                          <span>{task.prio}</span>
-                        </div>
-                        <div className="flex items-center gap-1 text-zinc-500">
-                          <Calendar className="w-3.5 h-3.5" />
-                          <span>{task.date}</span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1 text-xs font-bold text-zinc-500 pt-1">
-                        <MessageSquare className="w-3.5 h-3.5" />
-                        <span>{task.count}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* COLUMN 2: IN PROGRESS */}
-              <div className="space-y-4">
-                <div className="bg-[#FFD93D] border-3 border-black p-3 rounded-xl shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <GripVertical className="w-4 h-4 text-black stroke-[2.5]" />
-                    <span className="font-black text-sm text-black uppercase tracking-wider">In Progress</span>
-                    <span className="w-5 h-5 bg-black text-white rounded-full text-[10px] font-black flex items-center justify-center">
-                      3
-                    </span>
-                  </div>
-
-                  <button className="bg-white text-black font-black text-[10px] px-2.5 py-1 rounded-md border border-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] hover:bg-zinc-50 cursor-pointer flex items-center gap-1">
-                    <Plus className="w-3 h-3 stroke-[3]" />
-                    <span>Add Task</span>
-                  </button>
-                </div>
-
-                <div className="space-y-4">
-                  {[
-                    { title: 'Implement User Authentication', prio: 'High Priority', prioBg: 'bg-[#FF6B6B]', date: 'May 25', count: 3, user: 'Aman Kumar', avBg: 'bg-[#C4B5FD] text-black', initials: 'AK', comment: 'Please use Supabase Auth for better security.', time: '2h ago' },
-                    { title: 'Build Shopping Cart', prio: 'Medium Priority', prioBg: 'bg-[#FFD93D]', date: 'May 27', count: 2, user: 'Sarah Khan', avBg: 'bg-[#FF6B6B] text-white', initials: 'SK', comment: 'Add coupon code functionality as well.', time: '5h ago' },
-                    { title: 'Admin Dashboard UI', prio: 'Low Priority', prioBg: 'bg-[#C4B5FD]', date: 'Jun 01', count: 1, user: 'Mike Johnson', avBg: 'bg-[#FFD93D] text-black', initials: 'MJ', comment: "Let's keep it minimal and clean.", time: '1d ago' },
-                  ].map((task, idx) => (
-                    <div key={idx} className="bg-white border-2 border-black p-4 rounded-xl shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] space-y-3">
-                      <div className="flex items-start justify-between gap-2">
-                        <h4 className="font-black text-sm text-black">{task.title}</h4>
-                        <button className="text-zinc-400 hover:text-black">
-                          <MoreVertical className="w-4 h-4" />
-                        </button>
-                      </div>
-                      <div className="flex items-center gap-3 text-[11px] font-bold text-zinc-600">
-                        <div className="flex items-center gap-1">
-                          <span className={cn("w-2 h-2 rounded-full", task.prioBg)} />
-                          <span>{task.prio}</span>
-                        </div>
-                        <div className="flex items-center gap-1 text-zinc-500">
-                          <Calendar className="w-3.5 h-3.5" />
-                          <span>{task.date}</span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1 text-xs font-bold text-zinc-500 pt-0.5">
-                        <MessageSquare className="w-3.5 h-3.5" />
-                        <span>{task.count}</span>
-                      </div>
-
-                      <div className="bg-[#F3E8FF] border border-black/20 p-2.5 rounded-lg flex items-start gap-2.5 text-xs">
-                        <div className={cn("w-6 h-6 rounded-full border border-black font-black text-[10px] flex items-center justify-center shrink-0", task.avBg)}>
-                          {task.initials}
-                        </div>
-                        <div className="flex-grow min-w-0">
-                          <div className="flex items-center justify-between gap-1">
-                            <span className="font-black text-black text-[11px]">{task.user}</span>
-                            <span className="text-[10px] font-bold text-zinc-400">{task.time}</span>
-                          </div>
-                          <p className="text-[11px] font-bold text-zinc-600 leading-tight mt-0.5">
-                            {task.comment}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* COLUMN 3: COMPLETED */}
-              <div className="space-y-4">
-                <div className="bg-[#C4B5FD] border-3 border-black p-3 rounded-xl shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <GripVertical className="w-4 h-4 text-black stroke-[2.5]" />
-                    <span className="font-black text-sm text-black uppercase tracking-wider">Completed</span>
-                    <span className="w-5 h-5 bg-black text-white rounded-full text-[10px] font-black flex items-center justify-center">
-                      5
-                    </span>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  {[
-                    { title: 'Project Setup', prioBg: 'bg-[#C4B5FD]', date: 'May 10' },
-                    { title: 'Repository Setup', prioBg: 'bg-[#C4B5FD]', date: 'May 10' },
-                    { title: 'Setup Supabase Project', prioBg: 'bg-[#FFD93D]', date: 'May 12' },
-                    { title: 'Database Schema Design', prioBg: 'bg-[#FFD93D]', date: 'May 15' },
-                    { title: 'Create Wireframes', prioBg: 'bg-[#C4B5FD]', date: 'May 16' },
-                  ].map((task, idx) => (
-                    <div key={idx} className="bg-white border-2 border-black p-4 rounded-xl shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-between">
-                      <div>
-                        <h4 className="font-black text-sm text-black">{task.title}</h4>
-                        <div className="flex items-center gap-3 text-[11px] font-bold text-zinc-600 mt-1">
-                          <div className="flex items-center gap-1">
-                            <span className={cn("w-2 h-2 rounded-full", task.prioBg)} />
-                            <span>Priority</span>
-                          </div>
-                          <div className="flex items-center gap-1 text-zinc-500">
-                            <Calendar className="w-3.5 h-3.5" />
-                            <span>{task.date}</span>
-                          </div>
-                        </div>
-                      </div>
-                      <CheckCircle2 className="w-5 h-5 text-[#16A34A] fill-[#DCFCE7] stroke-[2.5] shrink-0" />
-                    </div>
-                  ))}
-
-                  <div className="bg-[#F0FDF4] border-2 border-black p-3.5 rounded-xl shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center gap-3">
-                    <div className="text-2xl">🎉</div>
-                    <div>
-                      <div className="font-black text-xs text-black">Great job!</div>
-                      <div className="text-[11px] font-bold text-zinc-600">
-                        {"You're making excellent progress."}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-            </div>
-
-            {/* RIGHT SIDEBAR PANEL SECTION (3 Columns) */}
-            <div className="lg:col-span-3 space-y-6">
-              <div className="bg-white border-3 border-black p-5 rounded-2xl shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] space-y-4">
-                <div className="flex items-center gap-2 border-b border-zinc-150 pb-3">
-                  <BarChart3 className="w-5 h-5 text-black stroke-[2.5]" />
-                  <h3 className="font-black text-sm uppercase tracking-wide text-black">
-                    Project Summary
-                  </h3>
-                </div>
-
-                <div className="space-y-2.5 text-xs font-bold">
-                  <div className="flex items-center justify-between">
-                    <span className="text-zinc-600">Total Tasks</span>
-                    <span className="font-black text-black">30</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-zinc-600">Completed</span>
-                    <span className="font-black text-[#16A34A]">24</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-zinc-600">In Progress</span>
-                    <span className="font-black text-[#D97706]">3</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-zinc-600">To Do</span>
-                    <span className="font-black text-[#B91C1C]">6</span>
-                  </div>
-
-                  <div className="border-t border-zinc-200 pt-2.5 space-y-2.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-zinc-600">Completion Rate</span>
-                      <span className="font-black text-[#7C3AED] text-sm">80%</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-zinc-600">Days Remaining</span>
-                      <span className="font-black text-[#B91C1C] text-sm">12 days</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white border-3 border-black p-5 rounded-2xl shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] space-y-4">
-                <div className="flex items-center gap-2 border-b border-zinc-150 pb-3">
-                  <Activity className="w-5 h-5 text-black stroke-[2.5]" />
-                  <h3 className="font-black text-sm uppercase tracking-wide text-black">
-                    Activity Feed
-                  </h3>
-                </div>
-
-                <div className="space-y-3.5">
-                  {[
-                    { icon: CheckCircle2, iconBg: 'bg-[#C4B5FD]', text: 'Mike completed Database Schema Design', time: '2h ago' },
-                    { icon: FileText, iconBg: 'bg-[#FFD93D]', text: 'Sarah added a note Design Requirements', time: '5h ago' },
-                    { icon: Plus, iconBg: 'bg-[#FF6B6B]', text: 'You added a new task Design Checkout Flow', time: '1d ago' },
-                    { icon: MessageSquare, iconBg: 'bg-[#C4B5FD]', text: 'Aman commented on User Authentication', time: '2d ago' },
-                  ].map((act, idx) => {
-                    const ActIcon = act.icon;
-                    return (
-                      <div key={idx} className="flex items-start justify-between gap-2 text-xs border-b border-zinc-100 pb-2.5 last:border-0 last:pb-0">
-                        <div className="flex items-start gap-2.5 min-w-0">
-                          <div className={cn("w-6 h-6 rounded-md border border-black flex items-center justify-center shrink-0 text-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]", act.iconBg)}>
-                            <ActIcon className="w-3.5 h-3.5 stroke-[2.5]" />
-                          </div>
-                          <span className="font-bold text-zinc-700 text-[11px] leading-tight">
-                            {act.text}
-                          </span>
-                        </div>
-                        <span className="text-[10px] font-bold text-zinc-400 shrink-0">
-                          {act.time}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className="bg-white border-3 border-black p-5 rounded-2xl shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] space-y-4">
-                <div className="flex items-center gap-2 border-b border-zinc-150 pb-3">
-                  <Users className="w-5 h-5 text-black stroke-[2.5]" />
-                  <h3 className="font-black text-sm uppercase tracking-wide text-black">
-                    Team Members
-                  </h3>
-                </div>
-
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center -space-x-2">
-                    <div className="w-8 h-8 rounded-full bg-[#C4B5FD] border-2 border-black text-black font-black text-xs flex items-center justify-center shadow-[1.5px_1.5px_0px_0px_rgba(0,0,0,1)]">
-                      AK
-                    </div>
-                    <div className="w-8 h-8 rounded-full bg-[#FF6B6B] border-2 border-black text-white font-black text-xs flex items-center justify-center shadow-[1.5px_1.5px_0px_0px_rgba(0,0,0,1)]">
-                      SK
-                    </div>
-                    <div className="w-8 h-8 rounded-full bg-[#FFD93D] border-2 border-black text-black font-black text-xs flex items-center justify-center shadow-[1.5px_1.5px_0px_0px_rgba(0,0,0,1)]">
-                      MJ
-                    </div>
-                    <div className="w-8 h-8 rounded-full bg-[#FFD93D] border-2 border-black text-black font-black text-[10px] flex items-center justify-center shadow-[1.5px_1.5px_0px_0px_rgba(0,0,0,1)]">
-                      +2
-                    </div>
-                  </div>
-
-                  <button className="bg-white hover:bg-zinc-50 text-black font-extrabold text-xs px-3 py-1.5 rounded-lg border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all flex items-center gap-1 cursor-pointer">
-                    <UserPlus className="w-3.5 h-3.5 stroke-[2.5]" />
-                    <span>Invite</span>
-                  </button>
-                </div>
-              </div>
-
-            </div>
-
-          </div>
-        )}
-
-        {/* Placeholder for Activity Tab */}
-        {activeTab === 'activity' && (
-          <div className="bg-white border-3 border-black p-12 rounded-2xl shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] text-center my-8">
-            <div className="w-16 h-16 bg-[#FAF8F5] border-2 border-black rounded-2xl flex items-center justify-center mx-auto mb-4 text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
-              <Activity className="w-8 h-8" />
-            </div>
-            <h3 className="text-2xl font-black text-black capitalize">
-              Activity Overview
-            </h3>
-            <p className="text-sm font-bold text-zinc-500 mt-2 max-w-md mx-auto">
-              {"All project activity events are organized and tracked in real-time."}
-            </p>
           </div>
         )}
 
