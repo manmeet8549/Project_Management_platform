@@ -3,6 +3,8 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { NewTaskModal } from '@/components/modals/NewTaskModal';
+import { EditTaskModal } from '@/components/modals/EditTaskModal';
+import { NewCredentialModal } from '@/components/modals/NewCredentialModal';
 import { motion } from 'framer-motion';
 import { 
   ArrowLeft, 
@@ -28,17 +30,24 @@ import {
   ChevronLeft,
   ChevronRight,
   Sparkles,
-  Zap
+  Zap,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+interface CredentialField {
+  name: string;
+  value: string;
+}
 
 interface CredentialItem {
   id: string;
   title: string;
-  subtext: string;
   category: string;
   categoryBg: string;
   addedOn: string;
+  fields: CredentialField[];
 }
 
 interface NoteItem {
@@ -70,50 +79,68 @@ const credentialsData: CredentialItem[] = [
   {
     id: '1',
     title: 'GitHub Repository',
-    subtext: 'Account: project-admin',
     category: 'Development',
     categoryBg: 'bg-[#FFEAEA] text-[#B91C1C]',
     addedOn: 'May 18, 2025',
+    fields: [
+      { name: 'Account', value: 'project-admin' },
+      { name: 'Repository URL', value: 'https://github.com/project-admin/ecommerce-web.git' }
+    ]
   },
   {
     id: '2',
     title: 'Supabase Project',
-    subtext: 'Project URL: https://abcxyz.supabase.co',
     category: 'Backend',
     categoryBg: 'bg-[#DCFCE7] text-[#15803D]',
     addedOn: 'May 18, 2025',
+    fields: [
+      { name: 'Project URL', value: 'https://abcxyz.supabase.co' },
+      { name: 'Anon Key', value: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.anon-key-here' }
+    ]
   },
   {
     id: '3',
     title: 'Vercel Deployment',
-    subtext: 'Scope: Production Deployment',
     category: 'Deployment',
     categoryBg: 'bg-[#F3E8FF] text-[#7C3AED]',
     addedOn: 'May 19, 2025',
+    fields: [
+      { name: 'Scope', value: 'Production Deployment' },
+      { name: 'Project ID', value: 'prj_vercel_123456789' }
+    ]
   },
   {
     id: '4',
     title: 'Stripe Account',
-    subtext: 'Publishable Key: pk_test_************************************',
     category: 'Payment',
     categoryBg: 'bg-[#FEF3C7] text-[#D97706]',
     addedOn: 'May 20, 2025',
+    fields: [
+      { name: 'Publishable Key', value: 'pk_test_51NzABC123XYZ' },
+      { name: 'Secret Key', value: 'sk_test_51NzABC123SecretKey' }
+    ]
   },
   {
     id: '5',
     title: 'SendGrid Email',
-    subtext: 'API Key: SG.************************************',
     category: 'Email Service',
     categoryBg: 'bg-[#E0F2FE] text-[#0369A1]',
     addedOn: 'May 21, 2025',
+    fields: [
+      { name: 'API Key', value: 'SG.sendgrid-api-key-test-123456789' }
+    ]
   },
   {
     id: '6',
     title: 'Cloudinary Storage',
-    subtext: 'Cloud Name: dz8xyzabc',
     category: 'Storage',
     categoryBg: 'bg-[#E0F2FE] text-[#0369A1]',
     addedOn: 'May 22, 2025',
+    fields: [
+      { name: 'Cloud Name', value: 'dz8xyzabc' },
+      { name: 'API Key', value: '123456789012345' },
+      { name: 'API Secret', value: 'cloudinary-api-secret-key-xyz' }
+    ]
   },
 ];
 
@@ -397,6 +424,74 @@ export default function ProjectDetailsPage() {
     }));
   };
 
+  // Edit Task States
+  const [isEditTaskModalOpen, setIsEditTaskModalOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<TaskItem | null>(null);
+
+  const handleUpdateTask = (updated: { id: string; title: string; priority: 'High Priority' | 'Medium Priority' | 'Low Priority'; comment?: string }) => {
+    const prioBgs = {
+      'High Priority': 'bg-[#FF6B6B]',
+      'Medium Priority': 'bg-[#FFD93D]',
+      'Low Priority': 'bg-[#C4B5FD]'
+    };
+
+    setAllTasks(prev => prev.map(task => {
+      if (task.id === updated.id) {
+        return {
+          ...task,
+          title: updated.title,
+          prio: updated.priority,
+          prioBg: prioBgs[updated.priority],
+          comment: updated.comment || undefined,
+          time: updated.comment && !task.comment ? 'Just now' : task.time,
+          count: updated.comment ? 1 : 0
+        };
+      }
+      return task;
+    }));
+  };
+
+  const handleDeleteTask = (taskId: string) => {
+    setAllTasks(prev => prev.filter(t => t.id !== taskId));
+  };
+
+  // Credentials States
+  const [credentials, setCredentials] = useState<CredentialItem[]>(credentialsData);
+  const [isCredentialModalOpen, setIsCredentialModalOpen] = useState(false);
+  const [visibleFields, setVisibleFields] = useState<Record<string, boolean>>({});
+
+  const toggleFieldVisibility = (credId: string, idx: number) => {
+    const key = `${credId}-${idx}`;
+    setVisibleFields(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }));
+  };
+
+  const handleCreateCredential = (newCred: { title: string; category: string; fields: CredentialField[] }) => {
+    const catBgs: Record<string, string> = {
+      'Development': 'bg-[#FFEAEA] text-[#B91C1C]',
+      'Backend': 'bg-[#DCFCE7] text-[#15803D]',
+      'Deployment': 'bg-[#F3E8FF] text-[#7C3AED]',
+      'Payment': 'bg-[#FEF3C7] text-[#D97706]',
+      'Email Service': 'bg-[#E0F2FE] text-[#0369A1]',
+      'Storage': 'bg-[#E0F2FE] text-[#0369A1]',
+    };
+
+    const bg = catBgs[newCred.category] || 'bg-[#F3E8FF] text-[#7C3AED]';
+
+    const credObj: CredentialItem = {
+      id: Math.random().toString(),
+      title: newCred.title,
+      category: newCred.category,
+      categoryBg: bg,
+      addedOn: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
+      fields: newCred.fields
+    };
+
+    setCredentials(prev => [credObj, ...prev]);
+  };
+
   // Derive columns
   const todoTasks = allTasks.filter(t => t.status === 'To Do');
   const inProgressTasks = allTasks.filter(t => t.status === 'In Progress');
@@ -516,7 +611,19 @@ export default function ProjectDetailsPage() {
             </div>
 
             {/* Add Action Button */}
-            <button className="bg-[#FF6B6B] text-black font-black text-sm px-5 py-3.5 rounded-xl border-3 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all flex items-center justify-center gap-2 cursor-pointer">
+            <button 
+              onClick={() => {
+                if (activeTab === 'notes') {
+                  handleAddNewNote();
+                } else if (activeTab === 'credentials') {
+                  setIsCredentialModalOpen(true);
+                } else {
+                  setActiveTaskColumn('To Do');
+                  setIsTaskModalOpen(true);
+                }
+              }}
+              className="bg-[#FF6B6B] text-black font-black text-sm px-5 py-3.5 rounded-xl border-3 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all flex items-center justify-center gap-2 cursor-pointer"
+            >
               <Plus className="w-5 h-5 stroke-[3]" />
               <span>
                 {activeTab === 'notes' ? 'Add Note' : activeTab === 'credentials' ? 'Add Credential' : 'Add Task'}
@@ -659,7 +766,14 @@ export default function ProjectDetailsPage() {
                     >
                       <div className="flex items-start justify-between gap-2">
                         <h4 className="font-black text-sm text-black">{task.title}</h4>
-                        <button className="text-zinc-400 hover:text-black">
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingTask(task);
+                            setIsEditTaskModalOpen(true);
+                          }}
+                          className="text-zinc-400 hover:text-black cursor-pointer"
+                        >
                           <MoreVertical className="w-4 h-4" />
                         </button>
                       </div>
@@ -677,6 +791,22 @@ export default function ProjectDetailsPage() {
                         <MessageSquare className="w-3.5 h-3.5" />
                         <span>{task.count} {task.count === 1 ? 'Comment' : 'Comments'}</span>
                       </div>
+
+                      {/* Personal Task Note Callout */}
+                      {task.comment && (
+                        <div className="bg-[#F3E8FF] border border-black/20 p-2.5 rounded-lg flex items-start gap-2 text-xs">
+                          <MessageSquare className="w-3.5 h-3.5 text-[#7C3AED] stroke-[2.5] shrink-0 mt-0.5" />
+                          <div className="flex-grow min-w-0">
+                            <div className="flex items-center justify-between gap-1">
+                              <span className="font-black text-black text-[11px]">Note</span>
+                              <span className="text-[10px] font-bold text-zinc-400">{task.time}</span>
+                            </div>
+                            <p className="text-[11px] font-bold text-zinc-600 leading-tight mt-0.5">
+                              {task.comment}
+                            </p>
+                          </div>
+                        </div>
+                      )}
                     </motion.div>
                   ))}
                 </div>
@@ -744,7 +874,14 @@ export default function ProjectDetailsPage() {
                     >
                       <div className="flex items-start justify-between gap-2">
                         <h4 className="font-black text-sm text-black">{task.title}</h4>
-                        <button className="text-zinc-400 hover:text-black">
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingTask(task);
+                            setIsEditTaskModalOpen(true);
+                          }}
+                          className="text-zinc-400 hover:text-black cursor-pointer"
+                        >
                           <MoreVertical className="w-4 h-4" />
                         </button>
                       </div>
@@ -1329,21 +1466,59 @@ export default function ProjectDetailsPage() {
               </div>
 
               <div className="w-full overflow-x-auto rounded-xl border-2 border-black bg-white">
-                <table className="w-full text-left border-collapse">
+                <table className="w-full text-left border-collapse border-b-2 border-black">
                   <thead>
                     <tr className="bg-[#FAF8F5] border-b-2 border-black text-xs font-black text-black uppercase tracking-wider">
-                      <th className="px-5 py-4">Title</th>
+                      <th className="px-5 py-4">Title & Fields</th>
                       <th className="px-5 py-4">Category</th>
                       <th className="px-5 py-4">Added On</th>
-                      <th className="px-5 py-4 text-right">Actions</th>
+                      <th className="px-5 py-4 text-right">Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-200">
-                    {credentialsData.map((cred) => (
+                    {credentials.map((cred) => (
                       <tr key={cred.id} className="hover:bg-zinc-50/60 transition-colors">
-                        <td className="px-5 py-4">
+                        <td className="px-5 py-4 space-y-2">
                           <div className="font-black text-sm text-black">{cred.title}</div>
-                          <div className="text-xs font-bold text-zinc-500 mt-0.5">{cred.subtext}</div>
+                          
+                          {/* Dynamic Key-Value Fields */}
+                          <div className="space-y-1.5 mt-2">
+                            {cred.fields.map((field, idx) => {
+                              const isVisible = !!visibleFields[`${cred.id}-${idx}`];
+                              return (
+                                <div key={idx} className="flex items-center gap-2 bg-[#FAF8F5] border border-black/35 p-2 rounded-lg text-xs font-bold w-full max-w-md shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]">
+                                  <span className="text-zinc-500 shrink-0">{field.name}:</span>
+                                  <span className="font-mono text-black truncate flex-1 select-all">
+                                    {isVisible ? field.value : '••••••••••••••••'}
+                                  </span>
+                                  
+                                  {/* Eye Option */}
+                                  <button 
+                                    onClick={() => toggleFieldVisibility(cred.id, idx)}
+                                    className="text-zinc-500 hover:text-black p-1 cursor-pointer transition-colors"
+                                    title={isVisible ? "Hide Value" : "Show Value"}
+                                  >
+                                    {isVisible ? (
+                                      <EyeOff className="w-3.5 h-3.5" />
+                                    ) : (
+                                      <Eye className="w-3.5 h-3.5" />
+                                    )}
+                                  </button>
+
+                                  {/* Copy Option */}
+                                  <button 
+                                    onClick={() => {
+                                      navigator.clipboard.writeText(field.value);
+                                      alert(`${field.name} copied to clipboard!`);
+                                    }}
+                                    className="bg-white hover:bg-[#FFEAEA] text-black font-extrabold text-[10px] px-2 py-1 rounded border border-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[0.5px] hover:translate-y-[0.5px] hover:shadow-none active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all cursor-pointer"
+                                  >
+                                    Copy
+                                  </button>
+                                </div>
+                              );
+                            })}
+                          </div>
                         </td>
                         <td className="px-5 py-4">
                           <span className={cn(
@@ -1359,12 +1534,13 @@ export default function ProjectDetailsPage() {
                         <td className="px-5 py-4 text-right">
                           <button 
                             onClick={() => {
-                              navigator.clipboard.writeText(cred.subtext);
-                              alert(`${cred.title} value copied to clipboard!`);
+                              const allVals = cred.fields.map(f => `${f.name}: ${f.value}`).join('\n');
+                              navigator.clipboard.writeText(allVals);
+                              alert(`All values for ${cred.title} copied to clipboard!`);
                             }}
                             className="bg-white hover:bg-[#FFEAEA] text-black font-extrabold text-[10px] px-2.5 py-1.5 rounded-lg border-2 border-black shadow-[1.5px_1.5px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[0.5px] hover:translate-y-[0.5px] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] active:translate-x-[1.5px] active:translate-y-[1.5px] active:shadow-none transition-all cursor-pointer inline-flex items-center gap-1.5"
                           >
-                            <span>Copy</span>
+                            <span>Copy All</span>
                           </button>
                         </td>
                       </tr>
@@ -1373,7 +1549,7 @@ export default function ProjectDetailsPage() {
                 </table>
               </div>
             </div>
-
+ 
             <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
               <div className="md:col-span-6 bg-white border-2 border-black p-4 rounded-xl shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-around text-center">
                 <div className="w-10 h-10 bg-[#FAF8F5] border-2 border-black rounded-lg flex items-center justify-center text-black shrink-0 shadow-[1.5px_1.5px_0px_0px_rgba(0,0,0,1)]">
@@ -1382,11 +1558,11 @@ export default function ProjectDetailsPage() {
                 
                 <div className="text-center">
                   <div className="text-[10px] font-black uppercase text-zinc-500">Total Credentials</div>
-                  <div className="text-xl font-black text-[#7C3AED] mt-0.5">6</div>
+                  <div className="text-xl font-black text-[#7C3AED] mt-0.5">{credentials.length}</div>
                 </div>
-
+ 
                 <div className="h-8 w-px bg-zinc-200" />
-
+ 
                 <div className="text-center">
                   <div className="text-[10px] font-black uppercase text-zinc-500">Last Updated</div>
                   <div className="text-xs font-black text-black mt-1">May 22, 2025</div>
@@ -1417,6 +1593,20 @@ export default function ProjectDetailsPage() {
         onClose={() => setIsTaskModalOpen(false)}
         onSubmit={handleAddTask}
         columnName={activeTaskColumn}
+      />
+
+      <NewCredentialModal 
+        isOpen={isCredentialModalOpen}
+        onClose={() => setIsCredentialModalOpen(false)}
+        onSubmit={handleCreateCredential}
+      />
+
+      <EditTaskModal 
+        isOpen={isEditTaskModalOpen}
+        onClose={() => setIsEditTaskModalOpen(false)}
+        task={editingTask}
+        onSubmit={handleUpdateTask}
+        onDelete={handleDeleteTask}
       />
     </div>
   );

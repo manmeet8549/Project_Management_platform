@@ -1,29 +1,45 @@
 'use client';
 
-import React, { useState } from 'react';
-import { X, Sparkles, Plus } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Sparkles, Trash2, Edit } from 'lucide-react';
 
-interface NewTaskModalProps {
+interface EditTaskModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (task: { title: string; priority: 'High Priority' | 'Medium Priority' | 'Low Priority'; comment?: string }) => void;
-  columnName: string;
+  task: { id: string; title: string; prio: string; comment?: string } | null;
+  onSubmit: (updated: { id: string; title: string; priority: 'High Priority' | 'Medium Priority' | 'Low Priority'; comment?: string }) => void;
+  onDelete: (id: string) => void;
 }
 
-export function NewTaskModal({ isOpen, onClose, onSubmit, columnName }: NewTaskModalProps) {
+export function EditTaskModal({ isOpen, onClose, task, onSubmit, onDelete }: EditTaskModalProps) {
   const [title, setTitle] = useState('');
   const [priority, setPriority] = useState<'High Priority' | 'Medium Priority' | 'Low Priority'>('Medium Priority');
   const [comment, setComment] = useState('');
 
-  if (!isOpen) return null;
+  // Sync state with selected task
+  useEffect(() => {
+    if (task) {
+      setTitle(task.title);
+      setPriority(
+        task.prio === 'High Priority' || task.prio === 'Medium Priority' || task.prio === 'Low Priority'
+          ? (task.prio as 'High Priority' | 'Medium Priority' | 'Low Priority')
+          : 'Medium Priority'
+      );
+      setComment(task.comment || '');
+    }
+  }, [task]);
+
+  if (!isOpen || !task) return null;
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
-    onSubmit({ title, priority, comment: comment.trim() || undefined });
-    setTitle('');
-    setPriority('Medium Priority');
-    setComment('');
+    onSubmit({
+      id: task.id,
+      title,
+      priority,
+      comment: comment.trim() || undefined
+    });
     onClose();
   };
 
@@ -35,9 +51,9 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, columnName }: NewTaskM
         <div className="bg-[#FFD93D] border-b-3 border-black p-4 text-black flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-white border-2 border-black flex items-center justify-center shadow-[1.5px_1.5px_0px_0px_rgba(0,0,0,1)]">
-              <Plus className="w-4 h-4 text-black stroke-[3]" />
+              <Edit className="w-4 h-4 text-black stroke-[2.5]" />
             </div>
-            <h3 className="font-black text-sm tracking-wide">Add Task to {columnName}</h3>
+            <h3 className="font-black text-sm tracking-wide">Edit Task / Comment</h3>
           </div>
           <button 
             type="button"
@@ -76,7 +92,7 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, columnName }: NewTaskM
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-black text-black">Task Comment / Note (Optional)</label>
+            <label className="text-xs font-black text-black">Task Comment / Note</label>
             <textarea 
               value={comment}
               onChange={(e) => setComment(e.target.value)}
@@ -86,13 +102,26 @@ export function NewTaskModal({ isOpen, onClose, onSubmit, columnName }: NewTaskM
             />
           </div>
 
-          <div className="pt-2">
+          <div className="pt-2 grid grid-cols-5 gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                onDelete(task.id);
+                onClose();
+              }}
+              className="col-span-2 bg-[#FF6B6B] hover:bg-[#FF5252] text-black font-extrabold text-xs sm:text-sm py-3 rounded-xl border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[0.5px] hover:translate-y-[0.5px] active:translate-x-[1.5px] active:translate-y-[1.5px] active:shadow-none transition-all flex items-center justify-center gap-1 cursor-pointer"
+              title="Delete Task"
+            >
+              <Trash2 className="w-4 h-4 stroke-[2]" />
+              <span>Delete</span>
+            </button>
+
             <button
               type="submit"
-              className="w-full bg-[#FF6B6B] hover:bg-[#FF5252] text-black font-extrabold text-xs sm:text-sm py-3 rounded-xl border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all flex items-center justify-center gap-2 cursor-pointer"
+              className="col-span-3 bg-[#FFD93D] hover:bg-[#FCD34D] text-black font-extrabold text-xs sm:text-sm py-3 rounded-xl border-2 border-black shadow-[2.5px_2.5px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[0.5px] hover:translate-y-[0.5px] active:translate-x-[1.5px] active:translate-y-[1.5px] active:shadow-none transition-all flex items-center justify-center gap-1.5 cursor-pointer"
             >
               <Sparkles className="w-4 h-4 text-black" />
-              <span>Create Task</span>
+              <span>Save Changes</span>
             </button>
           </div>
         </form>
