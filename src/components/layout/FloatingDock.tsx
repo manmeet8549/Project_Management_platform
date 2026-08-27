@@ -13,9 +13,7 @@ import {
 } from 'framer-motion';
 import { 
   Home, 
-  LayoutDashboard, 
   FolderKanban, 
-  ShoppingCart, 
   Bell, 
   Settings,
   Sparkles
@@ -34,17 +32,10 @@ export function FloatingDock() {
   const navItems = [
     {
       title: 'Home',
-      href: '/',
+      href: '/dashboard',
       icon: Home,
       bgColor: 'bg-[#FF6B6B]',
       textColor: 'text-white',
-    },
-    {
-      title: 'Dashboard',
-      href: '/dashboard',
-      icon: LayoutDashboard,
-      bgColor: 'bg-[#FFD93D]',
-      textColor: 'text-black',
     },
     {
       title: 'Projects Overview',
@@ -52,13 +43,6 @@ export function FloatingDock() {
       icon: FolderKanban,
       bgColor: 'bg-[#C4B5FD]',
       textColor: 'text-black',
-    },
-    {
-      title: 'E-Commerce Project',
-      href: '/projects/1',
-      icon: ShoppingCart,
-      bgColor: 'bg-[#DCFCE7]',
-      textColor: 'text-[#15803D]',
     },
     {
       title: 'Notifications',

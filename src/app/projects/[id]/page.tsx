@@ -325,7 +325,7 @@ export default function ProjectDetailsPage() {
   const selectedNote = notesData.find(n => n.id === selectedNoteId) || notesData[0];
 
   return (
-    <div className="min-h-screen bg-[#FAF8F5] bg-dot-grid text-[#121210] p-6 sm:p-8 md:p-12 font-sans relative selection:bg-[#FFD93D] selection:text-black">
+    <div className="min-h-screen bg-[#FAF8F5] bg-dot-grid text-[#121210] p-6 sm:p-8 md:p-12 pb-32 sm:pb-40 md:pb-44 font-sans relative selection:bg-[#FFD93D] selection:text-black">
       
       {/* ========================================================================= */}
       {/* TOP NAVIGATION BAR */}
@@ -497,8 +497,8 @@ export default function ProjectDetailsPage() {
             <div className="lg:col-span-9 grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
               
               {/* COLUMN 1: TO DO */}
-              <div className="space-y-4">
-                <div className="bg-[#FF6B6B] border-3 border-black p-3 rounded-xl shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-between">
+              <div className="bg-white border-3 border-black rounded-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] overflow-hidden flex flex-col">
+                <div className="bg-[#FF6B6B] border-b-3 border-black p-3.5 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <GripVertical className="w-4 h-4 text-black stroke-[2.5]" />
                     <span className="font-black text-sm text-black uppercase tracking-wider">To Do</span>
@@ -507,13 +507,13 @@ export default function ProjectDetailsPage() {
                     </span>
                   </div>
 
-                  <button className="bg-white text-black font-black text-[10px] px-2.5 py-1 rounded-md border border-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] hover:bg-zinc-50 cursor-pointer flex items-center gap-1">
+                  <button className="bg-white text-black font-black text-[10px] px-2.5 py-1 rounded-lg border-2 border-black shadow-[1.5px_1.5px_0px_0px_rgba(0,0,0,1)] hover:bg-zinc-50 cursor-pointer flex items-center gap-1">
                     <Plus className="w-3 h-3 stroke-[3]" />
                     <span>Add Task</span>
                   </button>
                 </div>
 
-                <div className="space-y-4">
+                <div className="p-3.5 space-y-3.5 bg-[#FAF8F5] flex-1">
                   {[
                     { title: 'Design Homepage', prio: 'High Priority', prioBg: 'bg-[#FF6B6B]', date: 'May 28', count: 2 },
                     { title: 'Setup Product Database', prio: 'Medium Priority', prioBg: 'bg-[#FFD93D]', date: 'May 30', count: 1 },
@@ -521,7 +521,7 @@ export default function ProjectDetailsPage() {
                     { title: 'Setup Payment Gateway', prio: 'High Priority', prioBg: 'bg-[#FF6B6B]', date: 'Jun 05', count: 3 },
                     { title: 'Design Checkout Flow', prio: 'Medium Priority', prioBg: 'bg-[#FFD93D]', date: 'Jun 07', count: 1 },
                   ].map((task, idx) => (
-                    <div key={idx} className="bg-white border-2 border-black p-4 rounded-xl shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] space-y-3">
+                    <div key={idx} className="bg-white border-2 border-black p-4 rounded-xl shadow-[2.5px_2.5px_0px_0px_rgba(0,0,0,1)] space-y-3">
                       <div className="flex items-start justify-between gap-2">
                         <h4 className="font-black text-sm text-black">{task.title}</h4>
                         <button className="text-zinc-400 hover:text-black">
@@ -548,8 +548,8 @@ export default function ProjectDetailsPage() {
               </div>
 
               {/* COLUMN 2: IN PROGRESS */}
-              <div className="space-y-4">
-                <div className="bg-[#FFD93D] border-3 border-black p-3 rounded-xl shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-between">
+              <div className="bg-white border-3 border-black rounded-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] overflow-hidden flex flex-col">
+                <div className="bg-[#FFD93D] border-b-3 border-black p-3.5 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <GripVertical className="w-4 h-4 text-black stroke-[2.5]" />
                     <span className="font-black text-sm text-black uppercase tracking-wider">In Progress</span>
@@ -558,19 +558,19 @@ export default function ProjectDetailsPage() {
                     </span>
                   </div>
 
-                  <button className="bg-white text-black font-black text-[10px] px-2.5 py-1 rounded-md border border-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] hover:bg-zinc-50 cursor-pointer flex items-center gap-1">
+                  <button className="bg-white text-black font-black text-[10px] px-2.5 py-1 rounded-lg border-2 border-black shadow-[1.5px_1.5px_0px_0px_rgba(0,0,0,1)] hover:bg-zinc-50 cursor-pointer flex items-center gap-1">
                     <Plus className="w-3 h-3 stroke-[3]" />
                     <span>Add Task</span>
                   </button>
                 </div>
 
-                <div className="space-y-4">
+                <div className="p-3.5 space-y-3.5 bg-[#FAF8F5] flex-1">
                   {[
                     { title: 'Implement User Authentication', prio: 'High Priority', prioBg: 'bg-[#FF6B6B]', date: 'May 25', count: 3, comment: 'Please use Supabase Auth for better security.', time: '2h ago' },
                     { title: 'Build Shopping Cart', prio: 'Medium Priority', prioBg: 'bg-[#FFD93D]', date: 'May 27', count: 2, comment: 'Add coupon code functionality as well.', time: '5h ago' },
                     { title: 'Admin Dashboard UI', prio: 'Low Priority', prioBg: 'bg-[#C4B5FD]', date: 'Jun 01', count: 1, comment: "Let's keep it minimal and clean.", time: '1d ago' },
                   ].map((task, idx) => (
-                    <div key={idx} className="bg-white border-2 border-black p-4 rounded-xl shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] space-y-3">
+                    <div key={idx} className="bg-white border-2 border-black p-4 rounded-xl shadow-[2.5px_2.5px_0px_0px_rgba(0,0,0,1)] space-y-3">
                       <div className="flex items-start justify-between gap-2">
                         <h4 className="font-black text-sm text-black">{task.title}</h4>
                         <button className="text-zinc-400 hover:text-black">
@@ -611,8 +611,8 @@ export default function ProjectDetailsPage() {
               </div>
 
               {/* COLUMN 3: COMPLETED */}
-              <div className="space-y-4">
-                <div className="bg-[#C4B5FD] border-3 border-black p-3 rounded-xl shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-between">
+              <div className="bg-white border-3 border-black rounded-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] overflow-hidden flex flex-col">
+                <div className="bg-[#C4B5FD] border-b-3 border-black p-3.5 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <GripVertical className="w-4 h-4 text-black stroke-[2.5]" />
                     <span className="font-black text-sm text-black uppercase tracking-wider">Completed</span>
@@ -622,7 +622,7 @@ export default function ProjectDetailsPage() {
                   </div>
                 </div>
 
-                <div className="space-y-4">
+                <div className="p-3.5 space-y-3.5 bg-[#FAF8F5] flex-1">
                   {[
                     { title: 'Project Setup', prioBg: 'bg-[#C4B5FD]', date: 'May 10' },
                     { title: 'Repository Setup', prioBg: 'bg-[#C4B5FD]', date: 'May 10' },
@@ -630,7 +630,7 @@ export default function ProjectDetailsPage() {
                     { title: 'Database Schema Design', prioBg: 'bg-[#FFD93D]', date: 'May 15' },
                     { title: 'Create Wireframes', prioBg: 'bg-[#C4B5FD]', date: 'May 16' },
                   ].map((task, idx) => (
-                    <div key={idx} className="bg-white border-2 border-black p-4 rounded-xl shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-between">
+                    <div key={idx} className="bg-white border-2 border-black p-4 rounded-xl shadow-[2.5px_2.5px_0px_0px_rgba(0,0,0,1)] flex items-center justify-between">
                       <div>
                         <h4 className="font-black text-sm text-black">{task.title}</h4>
                         <div className="flex items-center gap-3 text-[11px] font-bold text-zinc-600 mt-1">
@@ -648,7 +648,7 @@ export default function ProjectDetailsPage() {
                     </div>
                   ))}
 
-                  <div className="bg-[#F0FDF4] border-2 border-black p-3.5 rounded-xl shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center gap-3">
+                  <div className="bg-[#DCFCE7] border-2 border-black p-3.5 rounded-xl shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center gap-3">
                     <div className="text-2xl">🎉</div>
                     <div>
                       <div className="font-black text-xs text-black">Great job!</div>

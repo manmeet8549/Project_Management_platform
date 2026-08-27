@@ -128,7 +128,7 @@ const projectsData: ProjectCardData[] = [
 
 export default function ProjectsPage() {
   return (
-    <div className="min-h-screen bg-[#FAF8F5] bg-dot-grid text-[#121210] p-6 sm:p-8 md:p-12 font-sans relative selection:bg-[#FFD93D] selection:text-black">
+    <div className="min-h-screen bg-[#FAF8F5] bg-dot-grid text-[#121210] p-6 sm:p-8 md:p-12 pb-32 sm:pb-40 md:pb-44 font-sans relative selection:bg-[#FFD93D] selection:text-black">
       
       {/* Back Button */}
       <div className="max-w-[1440px] mx-auto mb-6">
