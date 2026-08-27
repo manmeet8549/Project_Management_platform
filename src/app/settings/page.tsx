@@ -36,6 +36,13 @@ export default function SettingsPage() {
   // Security Settings States
   const [twoFactorAuth, setTwoFactorAuth] = useState<boolean>(false);
   const [autoLock, setAutoLock] = useState<boolean>(true);
+  
+  // Toast Notification State
+  const [showToast, setShowToast] = useState<boolean>(false);
+  const handleSave = () => {
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 2500);
+  };
 
   return (
     <div className="min-h-screen bg-[#FAF8F5] bg-dot-grid text-[#121210] p-6 sm:p-8 md:p-12 pb-32 sm:pb-40 md:pb-44 font-sans relative selection:bg-[#FFD93D] selection:text-black">
@@ -346,6 +353,17 @@ export default function SettingsPage() {
 
                   </div>
                 </div>
+
+                {/* Save Changes Button */}
+                <div className="flex justify-end mt-4">
+                  <button 
+                    type="button"
+                    onClick={handleSave}
+                    className="bg-[#FFD93D] hover:bg-[#FCD34D] text-black font-extrabold text-xs sm:text-sm px-6 py-3.5 rounded-xl border-3 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all flex items-center justify-center gap-2 cursor-pointer w-full sm:w-auto"
+                  >
+                    <span>Save Preferences</span>
+                  </button>
+                </div>
               </>
             )}
 
@@ -353,7 +371,8 @@ export default function SettingsPage() {
             {/* TAB CONTENT: SECURITY SETTINGS */}
             {/* ========================================================================= */}
             {activeTab === 'security' && (
-              <div className="bg-white border-3 border-black p-6 sm:p-8 rounded-2xl shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] space-y-6">
+              <>
+                <div className="bg-white border-3 border-black p-6 sm:p-8 rounded-2xl shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] space-y-6">
                 <div>
                   <h2 className="text-xl sm:text-2xl font-black text-black tracking-tight">
                     Security & Encryption
@@ -425,7 +444,19 @@ export default function SettingsPage() {
 
                 </div>
               </div>
-            )}
+
+              {/* Save Changes Button */}
+              <div className="flex justify-end mt-4">
+                <button 
+                  type="button"
+                  onClick={handleSave}
+                  className="bg-[#FFD93D] hover:bg-[#FCD34D] text-black font-extrabold text-xs sm:text-sm px-6 py-3.5 rounded-xl border-3 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all flex items-center justify-center gap-2 cursor-pointer w-full sm:w-auto"
+                >
+                  <span>Save Preferences</span>
+                </button>
+              </div>
+            </>
+          )}
 
             {/* ========================================================================= */}
             {/* TAB CONTENT: ABOUT */}
@@ -463,6 +494,12 @@ export default function SettingsPage() {
         </div>
 
       </div>
+
+      {showToast && (
+        <div className="fixed bottom-10 right-10 bg-[#DCFCE7] border-3 border-black p-4 rounded-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] z-50 flex items-center gap-2 font-black text-xs text-[#15803D] animate-bounce">
+          <span>🎉 Settings saved successfully!</span>
+        </div>
+      )}
     </div>
   );
 }

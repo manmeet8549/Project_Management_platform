@@ -1,5 +1,8 @@
-import React from 'react';
+'use client';
+
+import React, { useState } from 'react';
 import Link from 'next/link';
+import { NewProjectModal } from '@/components/modals/NewProjectModal';
 import { 
   Folder, 
   CheckSquare, 
@@ -68,6 +71,7 @@ function DashboardCard({
 // DASHBOARD PAGE MAIN COMPONENT
 // =========================================================================
 export default function DashboardPage() {
+  const [isModalOpen, setIsModalOpen] = useState(false);
   // Stat Card configuration data
   const stats = [
     {
@@ -147,7 +151,10 @@ export default function DashboardPage() {
           </div>
 
           <div>
-            <button className="bg-[#FF6B6B] text-black font-black text-sm md:text-base px-6 py-3.5 rounded-xl border-3 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all flex items-center justify-center gap-2 cursor-pointer w-full sm:w-auto">
+            <button 
+              onClick={() => setIsModalOpen(true)}
+              className="bg-[#FF6B6B] hover:bg-[#FF5252] text-black font-black text-sm md:text-base px-6 py-3.5 rounded-xl border-3 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all flex items-center justify-center gap-2 cursor-pointer w-full sm:w-auto"
+            >
               <Plus className="w-5 h-5 stroke-[3]" />
               <span>New Project</span>
             </button>
@@ -588,6 +595,12 @@ export default function DashboardPage() {
         </div>
 
       </div>
+
+      <NewProjectModal 
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSubmit={(p) => alert(`Project "${p.title}" created successfully!`)}
+      />
     </div>
   );
 }

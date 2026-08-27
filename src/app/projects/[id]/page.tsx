@@ -2,6 +2,8 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { NewTaskModal } from '@/components/modals/NewTaskModal';
+import { motion } from 'framer-motion';
 import { 
   ArrowLeft, 
   Settings, 
@@ -322,7 +324,106 @@ export default function ProjectDetailsPage() {
   const [activeTab, setActiveTab] = useState<'tasks' | 'credentials' | 'notes' | 'activity'>('tasks');
   const [selectedNoteId, setSelectedNoteId] = useState<string>('1');
 
-  const selectedNote = notesData.find(n => n.id === selectedNoteId) || notesData[0];
+  // Task Column States
+  interface TaskItem {
+    id: string;
+    title: string;
+    prio: string;
+    prioBg: string;
+    date: string;
+    count: number;
+    status: 'To Do' | 'In Progress' | 'Completed';
+    comment?: string;
+    time?: string;
+  }
+
+  const [allTasks, setAllTasks] = useState<TaskItem[]>([
+    // To Do
+    { id: 't1', title: 'Design Homepage', prio: 'High Priority', prioBg: 'bg-[#FF6B6B]', date: 'May 28', count: 2, status: 'To Do' },
+    { id: 't2', title: 'Setup Product Database', prio: 'Medium Priority', prioBg: 'bg-[#FFD93D]', date: 'May 30', count: 1, status: 'To Do' },
+    { id: 't3', title: 'Create Product Listing Page', prio: 'Low Priority', prioBg: 'bg-[#C4B5FD]', date: 'Jun 02', count: 0, status: 'To Do' },
+    { id: 't4', title: 'Setup Payment Gateway', prio: 'High Priority', prioBg: 'bg-[#FF6B6B]', date: 'Jun 05', count: 3, status: 'To Do' },
+    { id: 't5', title: 'Design Checkout Flow', prio: 'Medium Priority', prioBg: 'bg-[#FFD93D]', date: 'Jun 07', count: 1, status: 'To Do' },
+    // In Progress
+    { id: 'p1', title: 'Implement User Authentication', prio: 'High Priority', prioBg: 'bg-[#FF6B6B]', date: 'May 25', count: 3, comment: 'Please use Supabase Auth for better security.', time: '2h ago', status: 'In Progress' },
+    { id: 'p2', title: 'Build Shopping Cart', prio: 'Medium Priority', prioBg: 'bg-[#FFD93D]', date: 'May 27', count: 2, comment: 'Add coupon code functionality as well.', time: '5h ago', status: 'In Progress' },
+    { id: 'p3', title: 'Admin Dashboard UI', prio: 'Low Priority', prioBg: 'bg-[#C4B5FD]', date: 'Jun 01', count: 1, comment: "Let's keep it minimal and clean.", time: '1d ago', status: 'In Progress' },
+    // Completed
+    { id: 'c1', title: 'Project Setup', prio: 'Low Priority', prioBg: 'bg-[#C4B5FD]', date: 'May 10', count: 0, status: 'Completed' },
+    { id: 'c2', title: 'Repository Setup', prio: 'Low Priority', prioBg: 'bg-[#C4B5FD]', date: 'May 10', count: 0, status: 'Completed' },
+    { id: 'c3', title: 'Setup Supabase Project', prio: 'Medium Priority', prioBg: 'bg-[#FFD93D]', date: 'May 12', count: 0, status: 'Completed' },
+    { id: 'c4', title: 'Database Schema Design', prio: 'Medium Priority', prioBg: 'bg-[#FFD93D]', date: 'May 15', count: 0, status: 'Completed' },
+    { id: 'c5', title: 'Create Wireframes', prio: 'Low Priority', prioBg: 'bg-[#C4B5FD]', date: 'May 16', count: 0, status: 'Completed' },
+  ]);
+
+  const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
+  const [activeTaskColumn, setActiveTaskColumn] = useState<'To Do' | 'In Progress' | 'Completed'>('To Do');
+  const [dragOverColumn, setDragOverColumn] = useState<'To Do' | 'In Progress' | 'Completed' | null>(null);
+  const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
+
+  const handleAddTask = (newTask: { title: string; priority: 'High Priority' | 'Medium Priority' | 'Low Priority' }) => {
+    const prioBgs = {
+      'High Priority': 'bg-[#FF6B6B]',
+      'Medium Priority': 'bg-[#FFD93D]',
+      'Low Priority': 'bg-[#C4B5FD]'
+    };
+    
+    const taskObj: TaskItem = {
+      id: Math.random().toString(),
+      title: newTask.title,
+      prio: newTask.priority,
+      prioBg: prioBgs[newTask.priority],
+      date: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit' }),
+      count: 0,
+      status: activeTaskColumn,
+      comment: activeTaskColumn === 'In Progress' ? 'Initial implementation tasks.' : undefined,
+      time: activeTaskColumn === 'In Progress' ? 'Just now' : undefined
+    };
+    
+    setAllTasks(prev => [taskObj, ...prev]);
+  };
+
+  const handleMoveTask = (taskId: string, targetStatus: 'To Do' | 'In Progress' | 'Completed') => {
+    setAllTasks(prev => prev.map(task => {
+      if (task.id === taskId) {
+        const updatedTask = { ...task, status: targetStatus };
+        if (targetStatus === 'In Progress' && !task.comment) {
+          updatedTask.comment = 'Moved to In Progress';
+          updatedTask.time = 'Just now';
+        }
+        return updatedTask;
+      }
+      return task;
+    }));
+  };
+
+  // Derive columns
+  const todoTasks = allTasks.filter(t => t.status === 'To Do');
+  const inProgressTasks = allTasks.filter(t => t.status === 'In Progress');
+  const completedTasksState = allTasks.filter(t => t.status === 'Completed');
+
+  const [notes, setNotes] = useState(notesData);
+  const selectedNote = notes.find(n => n.id === selectedNoteId) || notes[0];
+
+  const handleAddNewNote = () => {
+    const title = prompt('Enter note title:');
+    if (!title) return;
+    const newNote = {
+      id: (notes.length + 1).toString(),
+      title: title,
+      excerpt: 'Newly added note. Click to see details.',
+      date: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
+      updated: 'Updated Just now',
+      sections: [
+        {
+          heading: '1. Checklist / Action Items',
+          items: ['First action item (double-click to edit)', 'Second action item']
+        }
+      ]
+    };
+    setNotes([...notes, newNote]);
+    setSelectedNoteId(newNote.id);
+  };
 
   return (
     <div className="min-h-screen bg-[#FAF8F5] bg-dot-grid text-[#121210] p-6 sm:p-8 md:p-12 pb-32 sm:pb-40 md:pb-44 font-sans relative selection:bg-[#FFD93D] selection:text-black">
@@ -503,25 +604,59 @@ export default function ProjectDetailsPage() {
                     <GripVertical className="w-4 h-4 text-black stroke-[2.5]" />
                     <span className="font-black text-sm text-black uppercase tracking-wider">To Do</span>
                     <span className="w-5 h-5 bg-black text-white rounded-full text-[10px] font-black flex items-center justify-center">
-                      6
+                      {todoTasks.length}
                     </span>
                   </div>
 
-                  <button className="bg-white text-black font-black text-[10px] px-2.5 py-1 rounded-lg border-2 border-black shadow-[1.5px_1.5px_0px_0px_rgba(0,0,0,1)] hover:bg-zinc-50 cursor-pointer flex items-center gap-1">
+                  <button 
+                    onClick={() => {
+                      setActiveTaskColumn('To Do');
+                      setIsTaskModalOpen(true);
+                    }}
+                    className="bg-white text-black font-black text-[10px] px-2.5 py-1 rounded-lg border-2 border-black shadow-[1.5px_1.5px_0px_0px_rgba(0,0,0,1)] hover:bg-zinc-50 cursor-pointer flex items-center gap-1"
+                  >
                     <Plus className="w-3 h-3 stroke-[3]" />
                     <span>Add Task</span>
                   </button>
                 </div>
 
-                <div className="p-3.5 space-y-3.5 bg-[#FAF8F5] flex-1">
-                  {[
-                    { title: 'Design Homepage', prio: 'High Priority', prioBg: 'bg-[#FF6B6B]', date: 'May 28', count: 2 },
-                    { title: 'Setup Product Database', prio: 'Medium Priority', prioBg: 'bg-[#FFD93D]', date: 'May 30', count: 1 },
-                    { title: 'Create Product Listing Page', prio: 'Low Priority', prioBg: 'bg-[#C4B5FD]', date: 'Jun 02', count: 0 },
-                    { title: 'Setup Payment Gateway', prio: 'High Priority', prioBg: 'bg-[#FF6B6B]', date: 'Jun 05', count: 3 },
-                    { title: 'Design Checkout Flow', prio: 'Medium Priority', prioBg: 'bg-[#FFD93D]', date: 'Jun 07', count: 1 },
-                  ].map((task, idx) => (
-                    <div key={idx} className="bg-white border-2 border-black p-4 rounded-xl shadow-[2.5px_2.5px_0px_0px_rgba(0,0,0,1)] space-y-3">
+                <div 
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    if (dragOverColumn !== 'To Do') setDragOverColumn('To Do');
+                  }}
+                  onDragLeave={() => setDragOverColumn(null)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    const taskId = e.dataTransfer.getData('text/plain');
+                    handleMoveTask(taskId, 'To Do');
+                    setDragOverColumn(null);
+                    setDraggedTaskId(null);
+                  }}
+                  className={cn(
+                    "p-3.5 space-y-3.5 bg-[#FAF8F5] flex-1 transition-all duration-200 min-h-[450px]",
+                    dragOverColumn === 'To Do' ? "bg-red-50/70 border-t-2 border-dashed border-[#FF6B6B]" : ""
+                  )}
+                >
+                  {todoTasks.map((task) => (
+                    <motion.div 
+                      key={task.id} 
+                      layout
+                      draggable
+                      onDragStart={(e) => {
+                        const dragEvent = e as unknown as React.DragEvent<HTMLDivElement>;
+                        dragEvent.dataTransfer.setData('text/plain', task.id);
+                        dragEvent.dataTransfer.effectAllowed = 'move';
+                        setDraggedTaskId(task.id);
+                      }}
+                      onDragEnd={() => setDraggedTaskId(null)}
+                      whileHover={{ scale: 1.02 }}
+                      whileDrag={{ scale: 1.05, rotate: 1 }}
+                      className={cn(
+                        "cursor-grab active:cursor-grabbing bg-white border-2 border-black p-4 rounded-xl shadow-[2.5px_2.5px_0px_0px_rgba(0,0,0,1)] space-y-3 transition-all duration-200",
+                        draggedTaskId === task.id ? "opacity-25 border-dashed scale-95 shadow-none bg-zinc-50/50" : "opacity-100"
+                      )}
+                    >
                       <div className="flex items-start justify-between gap-2">
                         <h4 className="font-black text-sm text-black">{task.title}</h4>
                         <button className="text-zinc-400 hover:text-black">
@@ -542,7 +677,7 @@ export default function ProjectDetailsPage() {
                         <MessageSquare className="w-3.5 h-3.5" />
                         <span>{task.count} {task.count === 1 ? 'Comment' : 'Comments'}</span>
                       </div>
-                    </div>
+                    </motion.div>
                   ))}
                 </div>
               </div>
@@ -554,23 +689,59 @@ export default function ProjectDetailsPage() {
                     <GripVertical className="w-4 h-4 text-black stroke-[2.5]" />
                     <span className="font-black text-sm text-black uppercase tracking-wider">In Progress</span>
                     <span className="w-5 h-5 bg-black text-white rounded-full text-[10px] font-black flex items-center justify-center">
-                      3
+                      {inProgressTasks.length}
                     </span>
                   </div>
 
-                  <button className="bg-white text-black font-black text-[10px] px-2.5 py-1 rounded-lg border-2 border-black shadow-[1.5px_1.5px_0px_0px_rgba(0,0,0,1)] hover:bg-zinc-50 cursor-pointer flex items-center gap-1">
+                  <button 
+                    onClick={() => {
+                      setActiveTaskColumn('In Progress');
+                      setIsTaskModalOpen(true);
+                    }}
+                    className="bg-white text-black font-black text-[10px] px-2.5 py-1 rounded-lg border-2 border-black shadow-[1.5px_1.5px_0px_0px_rgba(0,0,0,1)] hover:bg-zinc-50 cursor-pointer flex items-center gap-1"
+                  >
                     <Plus className="w-3 h-3 stroke-[3]" />
                     <span>Add Task</span>
                   </button>
                 </div>
 
-                <div className="p-3.5 space-y-3.5 bg-[#FAF8F5] flex-1">
-                  {[
-                    { title: 'Implement User Authentication', prio: 'High Priority', prioBg: 'bg-[#FF6B6B]', date: 'May 25', count: 3, comment: 'Please use Supabase Auth for better security.', time: '2h ago' },
-                    { title: 'Build Shopping Cart', prio: 'Medium Priority', prioBg: 'bg-[#FFD93D]', date: 'May 27', count: 2, comment: 'Add coupon code functionality as well.', time: '5h ago' },
-                    { title: 'Admin Dashboard UI', prio: 'Low Priority', prioBg: 'bg-[#C4B5FD]', date: 'Jun 01', count: 1, comment: "Let's keep it minimal and clean.", time: '1d ago' },
-                  ].map((task, idx) => (
-                    <div key={idx} className="bg-white border-2 border-black p-4 rounded-xl shadow-[2.5px_2.5px_0px_0px_rgba(0,0,0,1)] space-y-3">
+                <div 
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    if (dragOverColumn !== 'In Progress') setDragOverColumn('In Progress');
+                  }}
+                  onDragLeave={() => setDragOverColumn(null)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    const taskId = e.dataTransfer.getData('text/plain');
+                    handleMoveTask(taskId, 'In Progress');
+                    setDragOverColumn(null);
+                    setDraggedTaskId(null);
+                  }}
+                  className={cn(
+                    "p-3.5 space-y-3.5 bg-[#FAF8F5] flex-1 transition-all duration-200 min-h-[450px]",
+                    dragOverColumn === 'In Progress' ? "bg-amber-50/70 border-t-2 border-dashed border-[#FFD93D]" : ""
+                  )}
+                >
+                  {inProgressTasks.map((task) => (
+                    <motion.div 
+                      key={task.id} 
+                      layout
+                      draggable
+                      onDragStart={(e) => {
+                        const dragEvent = e as unknown as React.DragEvent<HTMLDivElement>;
+                        dragEvent.dataTransfer.setData('text/plain', task.id);
+                        dragEvent.dataTransfer.effectAllowed = 'move';
+                        setDraggedTaskId(task.id);
+                      }}
+                      onDragEnd={() => setDraggedTaskId(null)}
+                      whileHover={{ scale: 1.02 }}
+                      whileDrag={{ scale: 1.05, rotate: 1 }}
+                      className={cn(
+                        "cursor-grab active:cursor-grabbing bg-white border-2 border-black p-4 rounded-xl shadow-[2.5px_2.5px_0px_0px_rgba(0,0,0,1)] space-y-3 transition-all duration-200",
+                        draggedTaskId === task.id ? "opacity-25 border-dashed scale-95 shadow-none bg-zinc-50/50" : "opacity-100"
+                      )}
+                    >
                       <div className="flex items-start justify-between gap-2">
                         <h4 className="font-black text-sm text-black">{task.title}</h4>
                         <button className="text-zinc-400 hover:text-black">
@@ -593,19 +764,21 @@ export default function ProjectDetailsPage() {
                       </div>
 
                       {/* Personal Task Note Callout */}
-                      <div className="bg-[#F3E8FF] border border-black/20 p-2.5 rounded-lg flex items-start gap-2 text-xs">
-                        <MessageSquare className="w-3.5 h-3.5 text-[#7C3AED] stroke-[2.5] shrink-0 mt-0.5" />
-                        <div className="flex-grow min-w-0">
-                          <div className="flex items-center justify-between gap-1">
-                            <span className="font-black text-black text-[11px]">Note</span>
-                            <span className="text-[10px] font-bold text-zinc-400">{task.time}</span>
+                      {task.comment && (
+                        <div className="bg-[#F3E8FF] border border-black/20 p-2.5 rounded-lg flex items-start gap-2 text-xs">
+                          <MessageSquare className="w-3.5 h-3.5 text-[#7C3AED] stroke-[2.5] shrink-0 mt-0.5" />
+                          <div className="flex-grow min-w-0">
+                            <div className="flex items-center justify-between gap-1">
+                              <span className="font-black text-black text-[11px]">Note</span>
+                              <span className="text-[10px] font-bold text-zinc-400">{task.time}</span>
+                            </div>
+                            <p className="text-[11px] font-bold text-zinc-600 leading-tight mt-0.5">
+                              {task.comment}
+                            </p>
                           </div>
-                          <p className="text-[11px] font-bold text-zinc-600 leading-tight mt-0.5">
-                            {task.comment}
-                          </p>
                         </div>
-                      </div>
-                    </div>
+                      )}
+                    </motion.div>
                   ))}
                 </div>
               </div>
@@ -617,20 +790,59 @@ export default function ProjectDetailsPage() {
                     <GripVertical className="w-4 h-4 text-black stroke-[2.5]" />
                     <span className="font-black text-sm text-black uppercase tracking-wider">Completed</span>
                     <span className="w-5 h-5 bg-black text-white rounded-full text-[10px] font-black flex items-center justify-center">
-                      5
+                      {completedTasksState.length}
                     </span>
                   </div>
+                  
+                  <button 
+                    onClick={() => {
+                      setActiveTaskColumn('Completed');
+                      setIsTaskModalOpen(true);
+                    }}
+                    className="bg-white text-black font-black text-[10px] px-2.5 py-1 rounded-lg border-2 border-black shadow-[1.5px_1.5px_0px_0px_rgba(0,0,0,1)] hover:bg-zinc-50 cursor-pointer flex items-center gap-1"
+                  >
+                    <Plus className="w-3 h-3 stroke-[3]" />
+                    <span>Add Task</span>
+                  </button>
                 </div>
 
-                <div className="p-3.5 space-y-3.5 bg-[#FAF8F5] flex-1">
-                  {[
-                    { title: 'Project Setup', prioBg: 'bg-[#C4B5FD]', date: 'May 10' },
-                    { title: 'Repository Setup', prioBg: 'bg-[#C4B5FD]', date: 'May 10' },
-                    { title: 'Setup Supabase Project', prioBg: 'bg-[#FFD93D]', date: 'May 12' },
-                    { title: 'Database Schema Design', prioBg: 'bg-[#FFD93D]', date: 'May 15' },
-                    { title: 'Create Wireframes', prioBg: 'bg-[#C4B5FD]', date: 'May 16' },
-                  ].map((task, idx) => (
-                    <div key={idx} className="bg-white border-2 border-black p-4 rounded-xl shadow-[2.5px_2.5px_0px_0px_rgba(0,0,0,1)] flex items-center justify-between">
+                <div 
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    if (dragOverColumn !== 'Completed') setDragOverColumn('Completed');
+                  }}
+                  onDragLeave={() => setDragOverColumn(null)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    const taskId = e.dataTransfer.getData('text/plain');
+                    handleMoveTask(taskId, 'Completed');
+                    setDragOverColumn(null);
+                    setDraggedTaskId(null);
+                  }}
+                  className={cn(
+                    "p-3.5 space-y-3.5 bg-[#FAF8F5] flex-1 transition-all duration-200 min-h-[450px]",
+                    dragOverColumn === 'Completed' ? "bg-purple-50/70 border-t-2 border-dashed border-[#C4B5FD]" : ""
+                  )}
+                >
+                  {completedTasksState.map((task) => (
+                    <motion.div 
+                      key={task.id} 
+                      layout
+                      draggable
+                      onDragStart={(e) => {
+                        const dragEvent = e as unknown as React.DragEvent<HTMLDivElement>;
+                        dragEvent.dataTransfer.setData('text/plain', task.id);
+                        dragEvent.dataTransfer.effectAllowed = 'move';
+                        setDraggedTaskId(task.id);
+                      }}
+                      onDragEnd={() => setDraggedTaskId(null)}
+                      whileHover={{ scale: 1.02 }}
+                      whileDrag={{ scale: 1.05, rotate: 1 }}
+                      className={cn(
+                        "cursor-grab active:cursor-grabbing bg-white border-2 border-black p-4 rounded-xl shadow-[2.5px_2.5px_0px_0px_rgba(0,0,0,1)] flex items-center justify-between transition-all duration-200",
+                        draggedTaskId === task.id ? "opacity-25 border-dashed scale-95 shadow-none bg-zinc-50/50" : "opacity-100"
+                      )}
+                    >
                       <div>
                         <h4 className="font-black text-sm text-black">{task.title}</h4>
                         <div className="flex items-center gap-3 text-[11px] font-bold text-zinc-600 mt-1">
@@ -645,7 +857,7 @@ export default function ProjectDetailsPage() {
                         </div>
                       </div>
                       <CheckCircle2 className="w-5 h-5 text-[#16A34A] fill-[#DCFCE7] stroke-[2.5] shrink-0" />
-                    </div>
+                    </motion.div>
                   ))}
 
                   <div className="bg-[#DCFCE7] border-2 border-black p-3.5 rounded-xl shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center gap-3">
@@ -986,7 +1198,7 @@ export default function ProjectDetailsPage() {
                 </div>
 
                 <div className="space-y-3">
-                  {notesData.map((note) => {
+                  {notes.map((note) => {
                     const isSelected = note.id === selectedNoteId;
                     return (
                       <div
@@ -1011,7 +1223,10 @@ export default function ProjectDetailsPage() {
                   })}
                 </div>
 
-                <button className="w-full bg-white hover:bg-zinc-50 text-black font-extrabold text-xs py-3 rounded-xl border-2 border-black border-dashed shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all flex items-center justify-center gap-2 cursor-pointer">
+                <button 
+                  onClick={handleAddNewNote}
+                  className="w-full bg-white hover:bg-[#FFFBEB] text-black font-extrabold text-xs py-3 rounded-xl border-2 border-black border-dashed shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all flex items-center justify-center gap-2 cursor-pointer"
+                >
                   <Plus className="w-4 h-4 stroke-[3]" />
                   <span>Add New Note</span>
                 </button>
@@ -1142,8 +1357,14 @@ export default function ProjectDetailsPage() {
                           {cred.addedOn}
                         </td>
                         <td className="px-5 py-4 text-right">
-                          <button className="text-zinc-500 hover:text-black p-1 rounded-md transition-colors cursor-pointer">
-                            <MoreVertical className="w-5 h-5 stroke-[2]" />
+                          <button 
+                            onClick={() => {
+                              navigator.clipboard.writeText(cred.subtext);
+                              alert(`${cred.title} value copied to clipboard!`);
+                            }}
+                            className="bg-white hover:bg-[#FFEAEA] text-black font-extrabold text-[10px] px-2.5 py-1.5 rounded-lg border-2 border-black shadow-[1.5px_1.5px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[0.5px] hover:translate-y-[0.5px] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] active:translate-x-[1.5px] active:translate-y-[1.5px] active:shadow-none transition-all cursor-pointer inline-flex items-center gap-1.5"
+                          >
+                            <span>Copy</span>
                           </button>
                         </td>
                       </tr>
@@ -1190,6 +1411,13 @@ export default function ProjectDetailsPage() {
         )}
 
       </div>
+
+      <NewTaskModal 
+        isOpen={isTaskModalOpen}
+        onClose={() => setIsTaskModalOpen(false)}
+        onSubmit={handleAddTask}
+        columnName={activeTaskColumn}
+      />
     </div>
   );
 }
