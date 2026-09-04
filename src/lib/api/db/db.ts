@@ -599,7 +599,7 @@ class DatabaseStore {
               this.cachedDefaultUserId = newUser.id;
             }
           }
-          ownerId = this.cachedDefaultUserId;
+          ownerId = this.cachedDefaultUserId || undefined;
         }
 
         const mappedStatus: ProjectStatusEnum = (data.status === 'in-progress' ? 'in_progress' : data.status === 'on-hold' ? 'on_hold' : data.status) as ProjectStatusEnum;
@@ -959,7 +959,7 @@ class DatabaseStore {
               this.cachedDefaultProjectId = p.id;
             }
           }
-          projectId = this.cachedDefaultProjectId;
+          projectId = this.cachedDefaultProjectId || undefined;
         }
 
         let assigneeId = data.assigneeId ? (this.aliasMap.get(data.assigneeId) || data.assigneeId) : null;
