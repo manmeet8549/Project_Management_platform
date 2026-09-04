@@ -56,7 +56,12 @@ export class ValidationError extends AppError {
   }
 }
 
-export function successResponse<T>(data: T, statusCode: number = 200, meta?: Record<string, unknown>) {
+export function successResponse<T>(
+  data: T,
+  statusCode: number = 200,
+  meta?: Record<string, unknown>,
+  cacheTtlSeconds: number = 5
+) {
   const body: { success: true; data: T; meta?: Record<string, unknown> } = {
     success: true,
     data,
@@ -64,7 +69,16 @@ export function successResponse<T>(data: T, statusCode: number = 200, meta?: Rec
   if (meta) {
     body.meta = meta;
   }
-  return NextResponse.json(body, { status: statusCode });
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+
+  if (cacheTtlSeconds > 0) {
+    headers['Cache-Control'] = `public, s-maxage=${cacheTtlSeconds}, stale-while-revalidate=15`;
+  }
+
+  return NextResponse.json(body, { status: statusCode, headers });
 }
 
 export function errorResponse(error: unknown) {

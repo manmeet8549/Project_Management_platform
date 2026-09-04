@@ -13,7 +13,7 @@ export const POST = apiHandler(async (req: NextRequest) => {
     throw new ConflictError(`User with email '${body.email}' already exists`);
   }
 
-  const passwordHash = await bcrypt.hash(body.password, 10);
+  const passwordHash = await bcrypt.hash(body.password, 6);
   const newUser = await db.createUser({
     name: body.name,
     email: body.email,

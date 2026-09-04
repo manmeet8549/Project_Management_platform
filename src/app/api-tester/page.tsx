@@ -28,7 +28,7 @@ interface EndpointPreset {
   headers?: Record<string, string>;
 }
 
-const PRESET_ENDPOINTS: EndpointPreset[] = [
+const createPresets = (): EndpointPreset[] => [
   // User endpoints
   {
     id: 'get-users',
@@ -36,7 +36,7 @@ const PRESET_ENDPOINTS: EndpointPreset[] = [
     category: 'Users',
     method: 'GET',
     path: '/api/v1/users',
-    description: 'Fetch list of registered users',
+    description: 'Fetch list of registered users from Supabase',
   },
   {
     id: 'register-user',
@@ -44,10 +44,10 @@ const PRESET_ENDPOINTS: EndpointPreset[] = [
     category: 'Users',
     method: 'POST',
     path: '/api/v1/users/register',
-    description: 'Create a new user account with hashed password',
+    description: 'Create a new user account with hashed password in Supabase',
     body: JSON.stringify({
       name: 'Developer Tester',
-      email: `test.${Date.now()}@example.com`,
+      email: `tester.${Math.floor(Math.random() * 10000)}@example.com`,
       password: 'Password123!',
       role: 'MEMBER',
     }, null, 2),
@@ -80,7 +80,7 @@ const PRESET_ENDPOINTS: EndpointPreset[] = [
     category: 'Projects',
     method: 'GET',
     path: '/api/v1/projects',
-    description: 'Retrieve projects with filter metrics',
+    description: 'Retrieve projects with filter metrics from Supabase',
   },
   {
     id: 'create-project',
@@ -88,7 +88,7 @@ const PRESET_ENDPOINTS: EndpointPreset[] = [
     category: 'Projects',
     method: 'POST',
     path: '/api/v1/projects',
-    description: 'Create new project workspace',
+    description: 'Create new project workspace in Supabase',
     body: JSON.stringify({
       title: 'Realtime Microservice Architecture',
       description: 'High-throughput event driven backend setup',
@@ -112,8 +112,8 @@ const PRESET_ENDPOINTS: EndpointPreset[] = [
     name: 'List Tasks',
     category: 'Tasks',
     method: 'GET',
-    path: '/api/v1/tasks?projectId=proj-1',
-    description: 'Retrieve tasks by project filter',
+    path: '/api/v1/tasks',
+    description: 'Retrieve tasks from Supabase',
   },
   {
     id: 'create-task',
@@ -121,9 +121,9 @@ const PRESET_ENDPOINTS: EndpointPreset[] = [
     category: 'Tasks',
     method: 'POST',
     path: '/api/v1/tasks',
-    description: 'Create new task inside project',
+    description: 'Create new task inside project in Supabase',
     body: JSON.stringify({
-      title: 'Write Comprehensive Unit Tests',
+      title: 'Write Comprehensive Integration Tests',
       description: 'Test all Zod validation schemas and endpoints',
       status: 'todo',
       priority: 'high',
@@ -153,6 +153,8 @@ const PRESET_ENDPOINTS: EndpointPreset[] = [
   },
 ];
 
+const PRESET_ENDPOINTS = createPresets();
+
 interface TestResult {
   endpointId: string;
   status: number | null;
@@ -181,7 +183,16 @@ export default function ApiTesterPage() {
     setSelectedPreset(preset);
     setMethod(preset.method);
     setPath(preset.path);
-    setRequestBody(preset.body || '');
+    if (preset.id === 'register-user') {
+      setRequestBody(JSON.stringify({
+        name: 'Developer Tester',
+        email: `tester.${Math.floor(Math.random() * 100000)}@example.com`,
+        password: 'Password123!',
+        role: 'MEMBER',
+      }, null, 2));
+    } else {
+      setRequestBody(preset.body || '');
+    }
   };
 
   const handleSendRequest = async () => {
@@ -252,8 +263,17 @@ export default function ApiTesterPage() {
           method: preset.method,
           headers: { 'Content-Type': 'application/json' },
         };
-        if (['POST', 'PATCH'].includes(preset.method) && preset.body) {
-          options.body = preset.body;
+        let bodyToSend = preset.body;
+        if (preset.id === 'register-user') {
+          bodyToSend = JSON.stringify({
+            name: 'Developer Tester',
+            email: `tester.${Math.floor(Math.random() * 100000)}@example.com`,
+            password: 'Password123!',
+            role: 'MEMBER',
+          }, null, 2);
+        }
+        if (['POST', 'PATCH'].includes(preset.method) && bodyToSend) {
+          options.body = bodyToSend;
         }
 
         const res = await fetch(preset.path, options);
@@ -314,7 +334,7 @@ export default function ApiTesterPage() {
               <div className="flex items-center gap-2">
                 <h1 className="text-2xl font-black tracking-tight">REST API Endpoint Inspector</h1>
                 <span className="bg-[#4D96FF] text-white font-bold text-xs px-2.5 py-1 rounded-full border border-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]">
-                  Standalone Tester
+                  Supabase Live DB
                 </span>
               </div>
               <p className="text-sm font-medium text-gray-600">
@@ -488,11 +508,20 @@ export default function ApiTesterPage() {
                   </label>
                   <button
                     onClick={() => {
-                      if (selectedPreset.body) setRequestBody(selectedPreset.body);
+                      if (selectedPreset.id === 'register-user') {
+                        setRequestBody(JSON.stringify({
+                          name: 'Developer Tester',
+                          email: `tester.${Math.floor(Math.random() * 100000)}@example.com`,
+                          password: 'Password123!',
+                          role: 'MEMBER',
+                        }, null, 2));
+                      } else if (selectedPreset.body) {
+                        setRequestBody(selectedPreset.body);
+                      }
                     }}
                     className="text-[11px] font-bold text-blue-700 hover:underline"
                   >
-                    Reset to Preset Template
+                    Generate Fresh Payload
                   </button>
                 </div>
                 <textarea
