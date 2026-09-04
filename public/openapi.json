@@ -1,0 +1,235 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Users, Projects & Tasks REST API",
+    "version": "1.0.0",
+    "description": "Production-grade RESTful API powering User management, Project organization, and Task status workflows."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000/api/v1",
+      "description": "Local Development Server"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Provide JWT token received from /users/login or /users/register"
+      }
+    },
+    "schemas": {
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "example": "usr-1" },
+          "name": { "type": "string", "example": "Manmeet Singh" },
+          "email": { "type": "string", "format": "email", "example": "manmeet@example.com" },
+          "role": { "type": "string", "enum": ["ADMIN", "MANAGER", "MEMBER"], "example": "ADMIN" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Project": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "example": "proj-1" },
+          "title": { "type": "string", "example": "E-Commerce Platform Redesign" },
+          "description": { "type": "string", "example": "Modernizing frontend architecture" },
+          "category": { "type": "string", "example": "Design & Dev" },
+          "status": { "type": "string", "enum": ["planning", "in-progress", "completed", "on-hold"], "example": "in-progress" },
+          "dueDate": { "type": "string", "format": "date", "example": "2026-10-15" },
+          "ownerId": { "type": "string", "example": "usr-1" }
+        }
+      },
+      "Task": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "example": "tsk-1" },
+          "title": { "type": "string", "example": "Design Database Schema" },
+          "description": { "type": "string", "example": "Define PostgreSQL tables" },
+          "status": { "type": "string", "enum": ["todo", "in-progress", "done", "completed"], "example": "todo" },
+          "priority": { "type": "string", "enum": ["low", "medium", "high", "urgent"], "example": "high" },
+          "projectId": { "type": "string", "example": "proj-1" },
+          "assigneeId": { "type": "string", "nullable": true, "example": "usr-1" },
+          "dueDate": { "type": "string", "format": "date", "example": "2026-09-01" }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "example": false },
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": { "type": "string", "example": "VALIDATION_ERROR" },
+              "message": { "type": "string", "example": "Validation failed for request body" },
+              "statusCode": { "type": "integer", "example": 422 },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "field": { "type": "string", "example": "email" },
+                    "issue": { "type": "string", "example": "Invalid email address format" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/users": {
+      "get": {
+        "summary": "List all users",
+        "responses": {
+          "200": { "description": "Successfully retrieved users" }
+        }
+      }
+    },
+    "/users/register": {
+      "post": {
+        "summary": "Register a new user account",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "email", "password"],
+                "properties": {
+                  "name": { "type": "string", "example": "John Doe" },
+                  "email": { "type": "string", "example": "john@example.com" },
+                  "password": { "type": "string", "example": "Secret123!" },
+                  "role": { "type": "string", "enum": ["ADMIN", "MANAGER", "MEMBER"], "default": "MEMBER" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "User created successfully" },
+          "409": { "description": "Email already exists" },
+          "422": { "description": "Validation error" }
+        }
+      }
+    },
+    "/users/login": {
+      "post": {
+        "summary": "Authenticate user and issue JWT token",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                  "email": { "type": "string", "example": "manmeet@example.com" },
+                  "password": { "type": "string", "example": "Password123!" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Authenticated successfully" },
+          "401": { "description": "Invalid email or password" }
+        }
+      }
+    },
+    "/projects": {
+      "get": {
+        "summary": "List all projects",
+        "responses": { "200": { "description": "Project list" } }
+      },
+      "post": {
+        "summary": "Create a new project",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["title", "category"],
+                "properties": {
+                  "title": { "type": "string", "example": "AI Analytics Dashboard" },
+                  "description": { "type": "string", "example": "Building predictive charts" },
+                  "category": { "type": "string", "example": "AI & Data" },
+                  "dueDate": { "type": "string", "example": "2026-12-01" },
+                  "status": { "type": "string", "enum": ["planning", "in-progress", "completed", "on-hold"] }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Project created successfully" },
+          "422": { "description": "Validation failed" }
+        }
+      }
+    },
+    "/tasks": {
+      "get": {
+        "summary": "List all tasks with filters",
+        "responses": { "200": { "description": "Tasks list" } }
+      },
+      "post": {
+        "summary": "Create a new task",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["title", "projectId"],
+                "properties": {
+                  "title": { "type": "string", "example": "Setup CI/CD Pipeline" },
+                  "description": { "type": "string", "example": "GitHub actions workflow" },
+                  "status": { "type": "string", "enum": ["todo", "in-progress", "done", "completed"] },
+                  "priority": { "type": "string", "enum": ["low", "medium", "high", "urgent"] },
+                  "projectId": { "type": "string", "example": "proj-1" },
+                  "assigneeId": { "type": "string", "example": "usr-1" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Task created successfully" }
+        }
+      }
+    },
+    "/tasks/{id}/status": {
+      "patch": {
+        "summary": "Update task status (todo / in-progress / done)",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["status"],
+                "properties": {
+                  "status": { "type": "string", "enum": ["todo", "in-progress", "done", "completed"], "example": "in-progress" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Status updated successfully" },
+          "404": { "description": "Task not found" }
+        }
+      }
+    }
+  }
+}

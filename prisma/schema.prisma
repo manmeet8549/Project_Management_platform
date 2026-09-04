@@ -1,0 +1,94 @@
+// This is your Prisma schema file for Supabase PostgreSQL
+// Learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  ADMIN
+  MANAGER
+  MEMBER
+}
+
+enum ProjectStatus {
+  planning
+  in_progress @map("in-progress")
+  completed
+  on_hold     @map("on-hold")
+}
+
+enum TaskStatus {
+  todo
+  in_progress @map("in-progress")
+  done
+  completed
+}
+
+enum TaskPriority {
+  low
+  medium
+  high
+  urgent
+}
+
+model User {
+  id           String    @id @default(uuid())
+  name         String
+  email        String    @unique
+  passwordHash String    @map("password_hash")
+  role         Role      @default(MEMBER)
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  projects     Project[] @relation("UserProjects")
+  tasks        Task[]    @relation("UserTasks")
+
+  @@map("users")
+}
+
+model Project {
+  id          String        @id @default(uuid())
+  title       String
+  description String        @default("")
+  category    String
+  status      ProjectStatus @default(planning)
+  dueDate     DateTime?     @map("due_date")
+  ownerId     String        @map("owner_id")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  owner       User          @relation("UserProjects", fields: [ownerId], references: [id], onDelete: Cascade)
+  tasks       Task[]        @relation("ProjectTasks")
+
+  @@index([category])
+  @@index([status])
+  @@map("projects")
+}
+
+model Task {
+  id          String       @id @default(uuid())
+  title       String
+  description String       @default("")
+  status      TaskStatus   @default(todo)
+  priority    TaskPriority @default(medium)
+  projectId   String       @map("project_id")
+  assigneeId  String?      @map("assignee_id")
+  dueDate     DateTime?    @map("due_date")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  project     Project      @relation("ProjectTasks", fields: [projectId], references: [id], onDelete: Cascade)
+  assignee    User?        @relation("UserTasks", fields: [assigneeId], references: [id], onDelete: SetNull)
+
+  @@index([projectId])
+  @@index([assigneeId])
+  @@index([status])
+  @@map("tasks")
+}
