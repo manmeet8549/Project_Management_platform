@@ -63,202 +63,7 @@ interface NoteItem {
 
 
 
-const credentialsData: CredentialItem[] = [
-  {
-    id: '1',
-    title: 'GitHub Repository',
-    category: 'Development',
-    categoryBg: 'bg-[#FFEAEA] text-[#B91C1C]',
-    addedOn: 'May 18, 2025',
-    fields: [
-      { name: 'Account', value: 'project-admin' },
-      { name: 'Repository URL', value: 'https://github.com/project-admin/ecommerce-web.git' }
-    ]
-  },
-  {
-    id: '2',
-    title: 'Supabase Project',
-    category: 'Backend',
-    categoryBg: 'bg-[#DCFCE7] text-[#15803D]',
-    addedOn: 'May 18, 2025',
-    fields: [
-      { name: 'Project URL', value: 'https://abcxyz.supabase.co' },
-      { name: 'Anon Key', value: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.anon-key-here' }
-    ]
-  },
-  {
-    id: '3',
-    title: 'Vercel Deployment',
-    category: 'Deployment',
-    categoryBg: 'bg-[#F3E8FF] text-[#7C3AED]',
-    addedOn: 'May 19, 2025',
-    fields: [
-      { name: 'Scope', value: 'Production Deployment' },
-      { name: 'Project ID', value: 'prj_vercel_123456789' }
-    ]
-  },
-  {
-    id: '4',
-    title: 'Stripe Account',
-    category: 'Payment',
-    categoryBg: 'bg-[#FEF3C7] text-[#D97706]',
-    addedOn: 'May 20, 2025',
-    fields: [
-      { name: 'Publishable Key', value: 'pk_test_51NzABC123XYZ' },
-      { name: 'Secret Key', value: 'sk_test_51NzABC123SecretKey' }
-    ]
-  },
-  {
-    id: '5',
-    title: 'SendGrid Email',
-    category: 'Email Service',
-    categoryBg: 'bg-[#E0F2FE] text-[#0369A1]',
-    addedOn: 'May 21, 2025',
-    fields: [
-      { name: 'API Key', value: 'SG.sendgrid-api-key-test-123456789' }
-    ]
-  },
-  {
-    id: '6',
-    title: 'Cloudinary Storage',
-    category: 'Storage',
-    categoryBg: 'bg-[#E0F2FE] text-[#0369A1]',
-    addedOn: 'May 22, 2025',
-    fields: [
-      { name: 'Cloud Name', value: 'dz8xyzabc' },
-      { name: 'API Key', value: '123456789012345' },
-      { name: 'API Secret', value: 'cloudinary-api-secret-key-xyz' }
-    ]
-  },
-];
 
-const notesData: NoteItem[] = [
-  {
-    id: '1',
-    title: 'Project Requirements',
-    excerpt: 'Define the core requirements for the e-commerce website...',
-    date: 'May 22, 2025',
-    updated: 'Updated 2 hours ago',
-    sections: [
-      {
-        heading: '1. Core Features',
-        items: [
-          'User Authentication (Login, Register, Forgot Password)',
-          'Product Listing with Search and Filters',
-          'Product Details Page',
-          'Shopping Cart and Checkout',
-          'Payment Integration',
-          'Order Tracking',
-          'Admin Dashboard'
-        ]
-      },
-      {
-        heading: '2. Tech Stack',
-        items: [
-          'Frontend: Next.js, Tailwind CSS',
-          'Backend: Node.js, Express.js',
-          'Database: PostgreSQL (Supabase)',
-          'Authentication: Supabase Auth',
-          'Storage: Supabase Storage'
-        ]
-      },
-      {
-        heading: '3. Design Guidelines',
-        items: [
-          'Clean and modern UI',
-          'Mobile-first responsive design',
-          'Follow brand colors and typography',
-          'Focus on user experience and performance'
-        ]
-      }
-    ]
-  },
-  {
-    id: '2',
-    title: 'Project Brainstorming Notes',
-    excerpt: 'Discussed design preferences, features and timeline...',
-    date: 'May 20, 2025',
-    updated: 'Updated 2 days ago',
-    sections: [
-      {
-        heading: '1. Key Decisions',
-        items: [
-          'Aligned on neobrutalist design system with high contrast borders.',
-          'Target launch date confirmed for August 30, 2025.',
-          'Weekly milestone checks scheduled for every Tuesday.'
-        ]
-      }
-    ]
-  },
-  {
-    id: '3',
-    title: 'Database Schema Ideas',
-    excerpt: 'Initial thoughts on how to structure the database...',
-    date: 'May 18, 2025',
-    updated: 'Updated 4 days ago',
-    sections: [
-      {
-        heading: '1. Schema Tables',
-        items: [
-          'users (id, email, role, created_at)',
-          'projects (id, name, status, due_date)',
-          'tasks (id, project_id, title, priority, status)'
-        ]
-      }
-    ]
-  },
-  {
-    id: '4',
-    title: 'API Integration Plan',
-    excerpt: 'List of third-party services and APIs to integrate...',
-    date: 'May 15, 2025',
-    updated: 'Updated 1 week ago',
-    sections: [
-      {
-        heading: '1. Integrations',
-        items: [
-          'Stripe API for secure checkout & webhook handling.',
-          'SendGrid API for transactional notification emails.',
-          'Cloudinary for media assets and image hosting.'
-        ]
-      }
-    ]
-  },
-  {
-    id: '5',
-    title: 'UI/UX Design Notes',
-    excerpt: 'Notes from the design brainstorming session...',
-    date: 'May 12, 2025',
-    updated: 'Updated 1 week ago',
-    sections: [
-      {
-        heading: '1. Design Principles',
-        items: [
-          'Use bright sticker icons (red, yellow, purple).',
-          'Solid drop shadows (3px/4px/6px) for neobrutalist cards.',
-          'Clear typography hierarchy and bold callouts.'
-        ]
-      }
-    ]
-  },
-  {
-    id: '6',
-    title: 'Deployment Checklist',
-    excerpt: 'Steps to deploy the application to production...',
-    date: 'May 10, 2025',
-    updated: 'Updated 2 weeks ago',
-    sections: [
-      {
-        heading: '1. Checklist',
-        items: [
-          'Configure environment variables on Vercel.',
-          'Run automated TypeScript and lint verification.',
-          'Verify SSL certificates and custom domain DNS.'
-        ]
-      }
-    ]
-  }
-];
 
 
 interface RawProjectApiDetail {
@@ -356,14 +161,14 @@ export default function ProjectDetailsPage() {
   const fetchCredentials = React.useCallback(async (forceRefresh = false) => {
     if (!rawProjectId) return;
     try {
-      const res = await fetchWithCache<{ data: CredentialItem[] }>(
+      await fetchWithCache<CredentialItem[]>(
         `/api/v1/credentials?projectId=${rawProjectId}`,
         `credentials_${rawProjectId}`,
-        forceRefresh
+        (data) => {
+          if (Array.isArray(data)) setCredentials(data);
+        },
+        { forceRefresh }
       );
-      if (res?.data && Array.isArray(res.data)) {
-        setCredentials(res.data);
-      }
     } catch (err) {
       console.error('Failed to fetch credentials:', err);
     }
@@ -372,14 +177,14 @@ export default function ProjectDetailsPage() {
   const fetchNotes = React.useCallback(async (forceRefresh = false) => {
     if (!rawProjectId) return;
     try {
-      const res = await fetchWithCache<{ data: NoteItem[] }>(
+      await fetchWithCache<NoteItem[]>(
         `/api/v1/notes?projectId=${rawProjectId}`,
         `notes_${rawProjectId}`,
-        forceRefresh
+        (data) => {
+          if (Array.isArray(data) && data.length > 0) setNotes(data);
+        },
+        { forceRefresh }
       );
-      if (res?.data && Array.isArray(res.data) && res.data.length > 0) {
-        setNotes(res.data);
-      }
     } catch (err) {
       console.error('Failed to fetch notes:', err);
     }

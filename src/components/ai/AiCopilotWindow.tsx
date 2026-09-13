@@ -12,7 +12,6 @@ import {
   ListPlus,
   Loader2,
   CheckCircle2,
-  Lightbulb,
   ArrowRight,
   FolderPlus,
   FolderCheck,
