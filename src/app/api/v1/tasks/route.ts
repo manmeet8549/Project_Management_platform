@@ -1,22 +1,24 @@
 import { NextRequest } from 'next/server';
-import { apiHandler, validateBody } from '@/lib/api/middleware/middleware';
+import { apiHandler, validateBody, getAuthUserOptional } from '@/lib/api/middleware/middleware';
 import { successResponse, NotFoundError } from '@/lib/api/errors/errors';
 import { createTaskSchema } from '@/lib/api/validators/task.schema';
 import { db } from '@/lib/api/db/db';
 
 export const GET = apiHandler(async (req: NextRequest) => {
   const url = new URL(req.url);
+  const authUser = getAuthUserOptional(req);
   const projectId = url.searchParams.get('projectId') || undefined;
   const assigneeId = url.searchParams.get('assigneeId') || undefined;
   const status = url.searchParams.get('status') || undefined;
   const priority = url.searchParams.get('priority') || undefined;
   const search = url.searchParams.get('search') || undefined;
 
-  const tasks = await db.getAllTasks({ projectId, assigneeId, status, priority, search });
+  const tasks = await db.getAllTasks({ projectId, assigneeId, status, priority, search, ownerId: authUser?.userId });
   return successResponse(tasks, 200, { total: tasks.length });
 });
 
 export const POST = apiHandler(async (req: NextRequest) => {
+  const authUser = getAuthUserOptional(req);
   const body = await validateBody(req, createTaskSchema);
 
   const project = await db.getProjectById(body.projectId);
@@ -37,7 +39,7 @@ export const POST = apiHandler(async (req: NextRequest) => {
     status: body.status,
     priority: body.priority,
     projectId: body.projectId,
-    assigneeId: body.assigneeId || null,
+    assigneeId: body.assigneeId || authUser?.userId || null,
     dueDate: body.dueDate || null,
   });
 

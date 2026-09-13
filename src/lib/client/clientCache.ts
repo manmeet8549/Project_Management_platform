@@ -15,7 +15,17 @@ class ClientCacheStore {
   private memoryCache = new Map<string, ClientCacheEntry<unknown>>();
 
   private getStorageKey(key: string): string {
-    return `pm_cache_${key}`;
+    let userPrefix = 'anonymous';
+    if (typeof window !== 'undefined') {
+      try {
+        const storedUser = localStorage.getItem('auth_user');
+        if (storedUser) {
+          const parsed = JSON.parse(storedUser);
+          if (parsed?.id) userPrefix = parsed.id;
+        }
+      } catch {}
+    }
+    return `pm_cache_${userPrefix}_${key}`;
   }
 
   /**
@@ -24,10 +34,11 @@ class ClientCacheStore {
    */
   get<T>(key: string, ttlMs: number = DEFAULT_TTL_MS): { data: T | null; isStale: boolean } {
     const now = Date.now();
+    const internalKey = this.getStorageKey(key);
 
     // 1. Check Memory Cache
-    if (this.memoryCache.has(key)) {
-      const entry = this.memoryCache.get(key) as ClientCacheEntry<T>;
+    if (this.memoryCache.has(internalKey)) {
+      const entry = this.memoryCache.get(internalKey) as ClientCacheEntry<T>;
       const isStale = (now - entry.timestamp) > ttlMs;
       return { data: entry.data, isStale };
     }
@@ -35,18 +46,18 @@ class ClientCacheStore {
     // 2. Check LocalStorage
     if (typeof window !== 'undefined') {
       try {
-        const raw = localStorage.getItem(this.getStorageKey(key));
+        const raw = localStorage.getItem(internalKey);
         if (raw) {
           const entry: ClientCacheEntry<T> = JSON.parse(raw);
           const age = now - entry.timestamp;
           if (age < STALE_TTL_MS) {
-            this.memoryCache.set(key, entry);
+            this.memoryCache.set(internalKey, entry);
             const isStale = age > ttlMs;
             return { data: entry.data, isStale };
           }
         }
       } catch (err) {
-        console.warn('LocalStorage read error for key:', key, err);
+        console.warn('LocalStorage read error for key:', internalKey, err);
       }
     }
 
@@ -57,18 +68,19 @@ class ClientCacheStore {
    * Saves data into both Memory Cache & LocalStorage
    */
   set<T>(key: string, data: T): void {
+    const internalKey = this.getStorageKey(key);
     const entry: ClientCacheEntry<T> = {
       data,
       timestamp: Date.now(),
     };
 
-    this.memoryCache.set(key, entry);
+    this.memoryCache.set(internalKey, entry);
 
     if (typeof window !== 'undefined') {
       try {
-        localStorage.setItem(this.getStorageKey(key), JSON.stringify(entry));
+        localStorage.setItem(internalKey, JSON.stringify(entry));
       } catch (err) {
-        console.warn('LocalStorage set error for key:', key, err);
+        console.warn('LocalStorage set error for key:', internalKey, err);
       }
     }
   }
@@ -77,12 +89,13 @@ class ClientCacheStore {
    * Removes specific cache key
    */
   remove(key: string): void {
-    this.memoryCache.delete(key);
+    const internalKey = this.getStorageKey(key);
+    this.memoryCache.delete(internalKey);
     if (typeof window !== 'undefined') {
       try {
-        localStorage.removeItem(this.getStorageKey(key));
+        localStorage.removeItem(internalKey);
       } catch (err) {
-        console.warn('LocalStorage remove error for key:', key, err);
+        console.warn('LocalStorage remove error for key:', internalKey, err);
       }
     }
   }

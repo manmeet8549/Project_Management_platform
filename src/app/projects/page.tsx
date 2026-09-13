@@ -26,6 +26,8 @@ import { NewProjectModal } from '@/components/modals/NewProjectModal';
 import { ProjectSettingsModal } from '@/components/modals/ProjectSettingsModal';
 import { fetchWithCache, invalidateClientCache } from '@/lib/client/clientCache';
 
+import { useAuth } from '@/components/auth/AuthGuard';
+
 interface ProjectCardData {
   id: string;
   title: string;
@@ -60,6 +62,7 @@ interface RawTaskApiItem {
 }
 
 export default function ProjectsPage() {
+  const { user } = useAuth();
   const [projects, setProjects] = useState<ProjectCardData[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'All' | 'In Progress' | 'Planning' | 'On Hold' | 'Completed'>('All');
@@ -137,7 +140,7 @@ export default function ProjectsPage() {
   }, []);
 
   React.useEffect(() => {
-    fetchProjectsData();
+    fetchProjectsData(true);
 
     const handleUpdate = () => fetchProjectsData(true);
     window.addEventListener('projectsUpdated', handleUpdate);
@@ -148,7 +151,7 @@ export default function ProjectsPage() {
       window.removeEventListener('tasksUpdated', handleUpdate);
       window.removeEventListener('taskUpdated', handleUpdate);
     };
-  }, [fetchProjectsData]);
+  }, [user?.id, fetchProjectsData]);
 
   const handleAddProject = async (newProj: { title: string; dueDate: string; description: string; category: string }) => {
     try {

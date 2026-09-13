@@ -61,6 +61,7 @@ export interface CredentialField {
 export interface CredentialRecord {
   id: string;
   projectId?: string;
+  userId?: string;
   title: string;
   category: string;
   categoryBg?: string;
@@ -78,6 +79,7 @@ export interface NoteSection {
 export interface NoteRecord {
   id: string;
   projectId?: string;
+  userId?: string;
   title: string;
   excerpt: string;
   date: string;
@@ -803,8 +805,8 @@ class DatabaseStore {
   }
 
   // --- TASK METHODS ---
-  async getAllTasks(query?: { projectId?: string; assigneeId?: string; status?: string; priority?: string; search?: string }) {
-    const cacheKey = `tasks:list:${query?.projectId || ''}:${query?.assigneeId || ''}:${query?.status || ''}:${query?.priority || ''}:${query?.search || ''}`;
+  async getAllTasks(query?: { projectId?: string; assigneeId?: string; status?: string; priority?: string; search?: string; ownerId?: string }) {
+    const cacheKey = `tasks:list:${query?.projectId || ''}:${query?.assigneeId || ''}:${query?.status || ''}:${query?.priority || ''}:${query?.search || ''}:${query?.ownerId || ''}`;
     const cached = apiCache.get<TaskWithRelations[]>(cacheKey);
     if (cached) return cached;
 
@@ -848,6 +850,7 @@ class DatabaseStore {
             AND: [
               targetProjectId ? { projectId: targetProjectId } : {},
               query?.assigneeId ? { assigneeId: query.assigneeId } : {},
+              query?.ownerId ? { project: { ownerId: query.ownerId } } : {},
               mappedStatus ? { status: mappedStatus } : {},
               priorityFilter ? { priority: priorityFilter } : {},
               query?.search ? {
@@ -883,6 +886,10 @@ class DatabaseStore {
     }
 
     let result = [...this.memoryTasks];
+    if (query?.ownerId) {
+      const userProjIds = new Set(this.memoryProjects.filter(p => p.ownerId === query.ownerId).map(p => p.id));
+      result = result.filter(t => userProjIds.has(t.projectId) || t.assigneeId === query.ownerId);
+    }
     if (query?.projectId) {
       result = result.filter(t => t.projectId === query.projectId);
     }
@@ -1302,14 +1309,18 @@ class DatabaseStore {
   }
 
   // --- CREDENTIAL METHODS ---
-  async getAllCredentials(query?: { projectId?: string; category?: string; search?: string }): Promise<CredentialRecord[]> {
-    const cacheKey = `credentials:list:${query?.projectId || ''}:${query?.category || ''}:${query?.search || ''}`;
+  async getAllCredentials(query?: { projectId?: string; category?: string; search?: string; userId?: string }): Promise<CredentialRecord[]> {
+    const cacheKey = `credentials:list:${query?.projectId || ''}:${query?.category || ''}:${query?.search || ''}:${query?.userId || ''}`;
     const cached = apiCache.get<CredentialRecord[]>(cacheKey);
     if (cached) return cached;
 
     let res = [...this.memoryCredentials];
+    if (query?.userId) {
+      const userProjIds = new Set(this.memoryProjects.filter(p => p.ownerId === query.userId).map(p => p.id));
+      res = res.filter(c => c.userId === query.userId || (c.projectId && userProjIds.has(c.projectId)));
+    }
     if (query?.projectId) {
-      res = res.filter(c => !c.projectId || c.projectId === query.projectId);
+      res = res.filter(c => c.projectId === query.projectId);
     }
     if (query?.category) {
       res = res.filter(c => c.category.toLowerCase().includes(query.category!.toLowerCase()));
@@ -1332,6 +1343,7 @@ class DatabaseStore {
     const newCred: CredentialRecord = {
       id: `c-${Date.now()}`,
       projectId: data.projectId,
+      userId: data.userId,
       title: data.title || 'Untitled Credential',
       category: data.category || 'API Key & Secret',
       categoryBg: data.categoryBg || 'bg-[#DCFCE7] text-[#15803D]',
@@ -1369,14 +1381,18 @@ class DatabaseStore {
   }
 
   // --- NOTE METHODS ---
-  async getAllNotes(query?: { projectId?: string; search?: string }): Promise<NoteRecord[]> {
-    const cacheKey = `notes:list:${query?.projectId || ''}:${query?.search || ''}`;
+  async getAllNotes(query?: { projectId?: string; search?: string; userId?: string }): Promise<NoteRecord[]> {
+    const cacheKey = `notes:list:${query?.projectId || ''}:${query?.search || ''}:${query?.userId || ''}`;
     const cached = apiCache.get<NoteRecord[]>(cacheKey);
     if (cached) return cached;
 
     let res = [...this.memoryNotes];
+    if (query?.userId) {
+      const userProjIds = new Set(this.memoryProjects.filter(p => p.ownerId === query.userId).map(p => p.id));
+      res = res.filter(n => n.userId === query.userId || (n.projectId && userProjIds.has(n.projectId)));
+    }
     if (query?.projectId) {
-      res = res.filter(n => !n.projectId || n.projectId === query.projectId);
+      res = res.filter(n => n.projectId === query.projectId);
     }
     if (query?.search) {
       const q = query.search.toLowerCase();
@@ -1396,6 +1412,7 @@ class DatabaseStore {
     const newNote: NoteRecord = {
       id: `n-${Date.now()}`,
       projectId: data.projectId,
+      userId: data.userId,
       title: data.title || 'Untitled Note',
       excerpt: data.excerpt || 'New project note created.',
       date: data.date || new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),

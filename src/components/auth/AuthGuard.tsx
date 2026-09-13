@@ -4,6 +4,8 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Loader2, ShieldAlert } from 'lucide-react';
 
+import { clientCache } from '@/lib/client/clientCache';
+
 interface AuthUser {
   id: string;
   name: string;
@@ -51,6 +53,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch {
         localStorage.removeItem('auth_token');
         localStorage.removeItem('auth_user');
+        clientCache.clear();
         setToken(null);
         setUser(null);
       }
@@ -83,6 +86,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [pathname, token, isLoading, router]);
 
   const login = (newToken: string, newUser: AuthUser) => {
+    clientCache.clear();
     localStorage.setItem('auth_token', newToken);
     localStorage.setItem('auth_user', JSON.stringify(newUser));
     setToken(newToken);
@@ -91,6 +95,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = () => {
+    clientCache.clear();
     localStorage.removeItem('auth_token');
     localStorage.removeItem('auth_user');
     setToken(null);

@@ -217,6 +217,14 @@ export function AiCopilotWindow({ isOpen, onClose }: AiCopilotWindowProps) {
     setIsLoading(true);
 
     try {
+      let currentProjectId: string | undefined = undefined;
+      if (pathname?.startsWith('/projects/')) {
+        const parts = pathname.split('/projects/')[1];
+        if (parts && parts !== 'new') {
+          currentProjectId = parts.split('/')[0];
+        }
+      }
+
       const apiMessages = updatedMessages.map((m) => ({
         role: m.sender === 'user' ? 'user' : 'assistant',
         content: m.text,
@@ -232,6 +240,7 @@ export function AiCopilotWindow({ isOpen, onClose }: AiCopilotWindowProps) {
         body: JSON.stringify({
           messages: apiMessages,
           action: 'chat',
+          currentProjectId,
         }),
       });
 
@@ -241,12 +250,19 @@ export function AiCopilotWindow({ isOpen, onClose }: AiCopilotWindowProps) {
       if (data.success && data.data?.reply) {
         const replyText = data.data.reply;
         const createdType = data.data.createdType as 'credential' | 'note' | undefined;
+        const updatedType = data.data.updatedType as string | undefined;
         const createdItem = data.data.item;
 
-        if (createdType === 'credential') {
+        if (createdType === 'credential' || updatedType === 'credential') {
           window.dispatchEvent(new Event('credentialsUpdated'));
-        } else if (createdType === 'note') {
+        } else if (createdType === 'note' || updatedType === 'note') {
           window.dispatchEvent(new Event('notesUpdated'));
+        }
+
+        if (updatedType === 'task' || updatedType === 'project' || data.data.actionExecuted) {
+          window.dispatchEvent(new Event('projectsUpdated'));
+          window.dispatchEvent(new Event('tasksUpdated'));
+          window.dispatchEvent(new Event('taskUpdated'));
         }
 
         const hasIdeaIntent = 

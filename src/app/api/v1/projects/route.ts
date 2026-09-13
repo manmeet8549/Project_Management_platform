@@ -1,14 +1,15 @@
 import { NextRequest } from 'next/server';
-import { apiHandler, validateBody } from '@/lib/api/middleware/middleware';
+import { apiHandler, validateBody, getAuthUserOptional } from '@/lib/api/middleware/middleware';
 import { successResponse } from '@/lib/api/errors/errors';
 import { createProjectSchema } from '@/lib/api/validators/project.schema';
 import { db } from '@/lib/api/db/db';
 
 export const GET = apiHandler(async (req: NextRequest) => {
   const url = new URL(req.url);
+  const authUser = getAuthUserOptional(req);
   const category = url.searchParams.get('category') || undefined;
   const status = url.searchParams.get('status') || undefined;
-  const ownerId = url.searchParams.get('ownerId') || undefined;
+  const ownerId = url.searchParams.get('ownerId') || authUser?.userId || undefined;
   const search = url.searchParams.get('search') || undefined;
 
   const projects = await db.getAllProjects({ category, status, ownerId, search });
@@ -16,6 +17,7 @@ export const GET = apiHandler(async (req: NextRequest) => {
 });
 
 export const POST = apiHandler(async (req: NextRequest) => {
+  const authUser = getAuthUserOptional(req);
   const body = await validateBody(req, createProjectSchema);
 
   const newProject = await db.createProject({
@@ -24,7 +26,7 @@ export const POST = apiHandler(async (req: NextRequest) => {
     category: body.category,
     status: body.status,
     dueDate: body.dueDate || null,
-    ownerId: body.ownerId || 'usr-1',
+    ownerId: authUser?.userId || body.ownerId || 'usr-1',
   });
 
   return successResponse(newProject, 201);

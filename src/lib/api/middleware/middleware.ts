@@ -69,6 +69,21 @@ export function verifyAuthToken(req: NextRequest): JwtUserPayload {
   }
 }
 
+export function getAuthUserOptional(req: NextRequest): JwtUserPayload | null {
+  const authHeader = req.headers.get('authorization');
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return null;
+  }
+
+  const token = authHeader.split(' ')[1];
+  try {
+    const decoded = jwt.verify(token, env.JWT_SECRET) as JwtUserPayload;
+    return decoded;
+  } catch {
+    return null;
+  }
+}
+
 export function apiHandler<T = unknown>(
   handler: (req: NextRequest, context: T) => Promise<NextResponse>
 ) {

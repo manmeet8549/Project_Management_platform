@@ -104,7 +104,7 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
-    fetchDashboardData();
+    fetchDashboardData(true);
 
     const handleUpdate = () => fetchDashboardData(true);
     window.addEventListener('projectsUpdated', handleUpdate);
@@ -116,7 +116,7 @@ export default function DashboardPage() {
       window.removeEventListener('tasksUpdated', handleUpdate);
       window.removeEventListener('taskUpdated', handleUpdate);
     };
-  }, [fetchDashboardData]);
+  }, [user?.id, fetchDashboardData]);
 
   const handleCreateProject = async (p: { title: string; description: string; category: string; dueDate: string }) => {
     try {

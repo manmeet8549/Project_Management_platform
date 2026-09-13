@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/api/db/db';
+import { db, TaskRecord, CredentialRecord, NoteRecord } from '@/lib/api/db/db';
+import { getAuthUserOptional } from '@/lib/api/middleware/middleware';
 
 const NVIDIA_API_KEY = process.env.NVIDIA_API_KEY || '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';
 const NVIDIA_API_URL = 'https://integrate.api.nvidia.com/v1/chat/completions';
@@ -78,6 +79,7 @@ function extractTasksFallback(messages: ChatMessage[]): {
 
 export async function POST(req: NextRequest) {
   try {
+    const authUser = getAuthUserOptional(req);
     const body = await req.json();
     const { messages = [], action = 'chat', currentProjectId } = body;
 
@@ -177,15 +179,18 @@ You MUST respond ONLY with a raw JSON object (no markdown, no conversational tex
           category: 'AI Refined Idea',
           status: 'in-progress',
           dueDate: null,
-          ownerId: 'usr-1',
+          ownerId: authUser?.userId || 'usr-1',
         });
         targetProject = createdProj;
         isNewProject = true;
       }
 
-      // Import extracted tasks into target project in database
+      // Import extracted tasks into target project in database.
+      // We iterate in reverse (Step N down to Step 1) with small millisecond delays so that
+      // Step 1 receives the newest timestamp and appears at the top of the Todo list when sorted by createdAt desc.
       const createdTasks = [];
-      for (const t of tasksToImport) {
+      for (let i = tasksToImport.length - 1; i >= 0; i--) {
+        const t = tasksToImport[i];
         const validPriority = ['low', 'medium', 'high', 'urgent'].includes(t.priority) ? t.priority : 'medium';
         const created = await db.createTask({
           title: t.title,
@@ -196,7 +201,9 @@ You MUST respond ONLY with a raw JSON object (no markdown, no conversational tex
           assigneeId: null,
           dueDate: null,
         });
-        createdTasks.push(created);
+        createdTasks.unshift(created);
+        // Small delay to ensure strictly distinct timestamps for sequential sorting
+        await new Promise((resolve) => setTimeout(resolve, 15));
       }
 
       return NextResponse.json({
@@ -349,20 +356,170 @@ Format strictly as JSON:
         },
       });
     } else {
-      // Standard Chat Refinement mode
+      // Full Project Context Aware AI Chat Assistant
+      const userText = messages[messages.length - 1]?.content || '';
+
+      // 1. Fetch live workspace data for target project
+      let targetProject = null;
+      if (currentProjectId) {
+        targetProject = await db.getProjectById(currentProjectId);
+      }
+      if (!targetProject) {
+        const allProjects = await db.getAllProjects({ ownerId: authUser?.userId });
+        if (allProjects.length > 0) targetProject = allProjects[0];
+      }
+
+      let projectTasks: TaskRecord[] = [];
+      let projectCredentials: CredentialRecord[] = [];
+      let projectNotes: NoteRecord[] = [];
+
+      if (targetProject) {
+        projectTasks = await db.getAllTasks({ projectId: targetProject.id });
+        projectCredentials = await db.getAllCredentials({ projectId: targetProject.id });
+        projectNotes = await db.getAllNotes({ projectId: targetProject.id });
+      }
+
+      // 2. Check for explicit action modification commands in user prompt
+      const lowerUser = userText.toLowerCase();
+
+      // Action A: Task status update / move task
+      const moveMatch = userText.match(/(?:move|change|set|mark|update|turn)\s+(?:task\s+)?["']?([^"'\n]+?)["']?\s+(?:to|as)\s+(completed|done|in[- ]progress|to[- ]do|todo)/i)
+        || userText.match(/(?:complete|finish)\s+(?:task\s+)?["']?([^"'\n]+?)["']?/i);
+
+      if (moveMatch && projectTasks.length > 0) {
+        const searchTitle = moveMatch[1].trim().toLowerCase();
+        let targetStatus: 'todo' | 'in-progress' | 'completed' = 'completed';
+        if (moveMatch[2]) {
+          const s = moveMatch[2].toLowerCase();
+          if (s.includes('progress')) targetStatus = 'in-progress';
+          else if (s.includes('todo') || s === 'to-do') targetStatus = 'todo';
+          else targetStatus = 'completed';
+        }
+
+        const foundTask = projectTasks.find(t => t.title.toLowerCase().includes(searchTitle) || t.id === searchTitle);
+        if (foundTask) {
+          const updated = await db.updateTaskStatus(foundTask.id, targetStatus);
+          return NextResponse.json({
+            success: true,
+            data: {
+              reply: `I updated task **"${foundTask.title}"** status to **${targetStatus.toUpperCase()}** in your project workspace!`,
+              actionExecuted: 'update_task_status',
+              updatedType: 'task',
+              item: updated,
+            },
+          });
+        }
+      }
+
+      // Action B: Add new task to project
+      const addTaskMatch = userText.match(/(?:add|create|new)\s+task[:\s]+["']?([^"'\n]+?)["']?/i);
+      if (addTaskMatch && targetProject) {
+        const taskTitle = addTaskMatch[1].trim();
+        let prio: 'low' | 'medium' | 'high' | 'urgent' = 'high';
+        if (lowerUser.includes('urgent')) prio = 'urgent';
+        else if (lowerUser.includes('medium')) prio = 'medium';
+        else if (lowerUser.includes('low')) prio = 'low';
+
+        const createdTask = await db.createTask({
+          title: taskTitle,
+          priority: prio,
+          status: 'todo',
+          projectId: targetProject.id,
+          description: 'Task added via AI Copilot assistant.',
+          dueDate: null,
+          assigneeId: null,
+        });
+
+        if (createdTask) {
+          return NextResponse.json({
+            success: true,
+            data: {
+              reply: `I added new ${prio.toUpperCase()} priority task **"${createdTask.title}"** to your **${targetProject.title}** project!`,
+              actionExecuted: 'create_task',
+              updatedType: 'task',
+              item: createdTask,
+            },
+          });
+        }
+      }
+
+      // Action C: Delete task from project
+      const delTaskMatch = userText.match(/(?:delete|remove)\s+task[:\s]+["']?([^"'\n]+?)["']?/i);
+      if (delTaskMatch && projectTasks.length > 0) {
+        const searchTitle = delTaskMatch[1].trim().toLowerCase();
+        const foundTask = projectTasks.find(t => t.title.toLowerCase().includes(searchTitle) || t.id === searchTitle);
+        if (foundTask) {
+          await db.deleteTask(foundTask.id);
+          return NextResponse.json({
+            success: true,
+            data: {
+              reply: `I deleted task **"${foundTask.title}"** from your project workspace!`,
+              actionExecuted: 'delete_task',
+              updatedType: 'task',
+            },
+          });
+        }
+      }
+
+      // Action D: Update Project Details
+      const updateProjMatch = userText.match(/(?:update|change|set)\s+project\s+(status|description|category)[:\s]+["']?([^"'\n]+?)["']?/i);
+      if (updateProjMatch && targetProject) {
+        const field = updateProjMatch[1].toLowerCase();
+        const val = updateProjMatch[2].trim();
+        const updateObj: Record<string, string> = {};
+        if (field === 'status') {
+          updateObj.status = val.includes('complete') ? 'completed' : val.includes('progress') ? 'in-progress' : 'planning';
+        } else if (field === 'description') {
+          updateObj.description = val;
+        } else if (field === 'category') {
+          updateObj.category = val;
+        }
+
+        const updatedProj = await db.updateProject(targetProject.id, updateObj);
+        return NextResponse.json({
+          success: true,
+          data: {
+            reply: `I updated project **${field}** to **"${val}"** for **"${targetProject.title}"**!`,
+            actionExecuted: 'update_project',
+            updatedType: 'project',
+            item: updatedProj,
+          },
+        });
+      }
+
+      // 3. Construct Full Live Workspace Context System Message
+      const contextPrompt = targetProject
+        ? `
+LIVE PROJECT WORKSPACE CONTEXT:
+- Target Project ID: "${targetProject.id}"
+- Title: "${targetProject.title}"
+- Category: "${targetProject.category}"
+- Status: "${targetProject.status}"
+- Description: "${targetProject.description || 'None'}"
+- Due Date: "${targetProject.dueDate || 'N/A'}"
+
+CURRENT TASKS (${projectTasks.length}):
+${projectTasks.map(t => `- Task [${t.id}] "${t.title}" | Status: ${t.status} | Priority: ${t.priority} | Due: ${t.dueDate || 'N/A'}`).join('\n') || 'No tasks currently.'}
+
+CREDENTIALS (${projectCredentials.length}):
+${projectCredentials.map(c => `- Credential [${c.id}] "${c.title}" (${c.category}) | Fields: ${c.fields.map(f => f.name).join(', ')}`).join('\n') || 'No credentials recorded.'}
+
+NOTES (${projectNotes.length}):
+${projectNotes.map(n => `- Note [${n.id}] "${n.title}" | Excerpt: ${n.excerpt}`).join('\n') || 'No notes recorded.'}
+`
+        : 'No active project found.';
+
       const systemMessage: ChatMessage = {
         role: 'system',
-        content: `You are an elite AI Project & Product Refinement Copilot powered by NVIDIA AI NIM.
-Your objective is to help the user refine, brainstorm, and polish software, app, or feature ideas.
+        content: `You are an elite AI Project & Workspace Manager powered by NVIDIA AI NIM.
+You have FULL real-time access to the user's project workspace data provided below:
+
+${contextPrompt}
 
 Guidelines:
-1. Be encouraging, highly insightful, and concise.
-2. Ask 1-2 focused questions to clarify technical specifications, credentials, or notes.
-3. Suggest 2-3 key features, architecture choices, or priorities.
-4. Tell the user they can ask you to:
-   - **"Import Idea into Todo List"**
-   - **"Add Credential for [Service]"**
-   - **"Add Note for [Requirements]"**`,
+1. Answer any user question about tasks, statuses, credentials, notes, progress, or metrics with 100% precision based on the live context above.
+2. Be encouraging, highly concise, and helpful.
+3. If the user asks to modify something (add task, move task status, delete task, add credential, add note, or update project), inform them of the exact change made!`,
       };
 
       const payload = {
@@ -396,7 +553,7 @@ Guidelines:
         }
       } catch (err) {
         console.warn('NVIDIA AI Chat API failed or timed out:', err);
-        aiReply = "I parsed your concept! You can click **'Import Idea into Todo List'** below whenever you're ready to create the tasks.";
+        aiReply = `I analyzed your project **"${targetProject?.title || 'Workspace'}"**! Currently you have ${projectTasks.length} tasks (${projectTasks.filter(t => t.status === 'completed' || t.status === 'done').length} completed, ${projectTasks.filter(t => t.status === 'in-progress').length} in progress).`;
       }
 
       return NextResponse.json({
@@ -404,6 +561,11 @@ Guidelines:
         data: {
           reply: aiReply,
           modelUsed: MODEL_NAME,
+          projectContext: targetProject ? {
+            id: targetProject.id,
+            title: targetProject.title,
+            totalTasks: projectTasks.length,
+          } : undefined,
         },
       });
     }

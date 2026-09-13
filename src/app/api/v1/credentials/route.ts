@@ -1,23 +1,26 @@
 import { NextRequest } from 'next/server';
-import { apiHandler } from '@/lib/api/middleware/middleware';
+import { apiHandler, getAuthUserOptional } from '@/lib/api/middleware/middleware';
 import { successResponse } from '@/lib/api/errors/errors';
 import { db } from '@/lib/api/db/db';
 
 export const GET = apiHandler(async (req: NextRequest) => {
   const url = new URL(req.url);
+  const authUser = getAuthUserOptional(req);
   const projectId = url.searchParams.get('projectId') || undefined;
   const category = url.searchParams.get('category') || undefined;
   const search = url.searchParams.get('search') || undefined;
 
-  const credentials = await db.getAllCredentials({ projectId, category, search });
+  const credentials = await db.getAllCredentials({ projectId, category, search, userId: authUser?.userId });
   return successResponse(credentials, 200, { total: credentials.length });
 });
 
 export const POST = apiHandler(async (req: NextRequest) => {
+  const authUser = getAuthUserOptional(req);
   const body = await req.json();
 
   const newCredential = await db.createCredential({
     projectId: body.projectId || undefined,
+    userId: authUser?.userId,
     title: body.title,
     category: body.category,
     categoryBg: body.categoryBg,
