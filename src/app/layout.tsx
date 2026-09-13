@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 import { FloatingDock } from '@/components/layout/FloatingDock';
+import { AuthProvider } from '@/components/auth/AuthGuard';
 
 const geistSans = Geist({
   variable: '--font-sans',
@@ -15,7 +16,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: 'Project Workspace',
-  description: 'Frontend workspace template ready to load visual mocks.',
+  description: 'Modern neo-brutalist project management workspace powered by real-time database storage and AI Copilot.',
 };
 
 export default function RootLayout({
@@ -26,9 +27,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        {children}
-        <FloatingDock />
+        <AuthProvider>
+          {children}
+          <FloatingDock />
+        </AuthProvider>
       </body>
     </html>
   );
 }
+

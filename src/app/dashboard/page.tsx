@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { NewProjectModal } from '@/components/modals/NewProjectModal';
+import { useAuth } from '@/components/auth/AuthGuard';
 import { 
   Folder, 
   CheckSquare, 
@@ -15,13 +16,28 @@ import {
   Plus, 
   Activity, 
   ArrowLeft,
-  ArrowRight,
   Bot,
-  CalendarDays,
   FolderPlus,
-  FileText
+  LogOut,
+  User as UserIcon
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { fetchWithCache, invalidateClientCache } from '@/lib/client/clientCache';
+
+interface ProjectApiItem {
+  id: string;
+  title: string;
+  category?: string;
+  status?: string;
+  dueDate?: string | null;
+}
+
+interface TaskApiItem {
+  id: string;
+  title: string;
+  status?: string;
+  dueDate?: string | null;
+}
 
 // =========================================================================
 // REUSABLE NEO-BRUTALIST COMPONENT: DashboardCard
@@ -72,12 +88,109 @@ function DashboardCard({
 // =========================================================================
 export default function DashboardPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const { user, logout } = useAuth();
+
+  const [projects, setProjects] = useState<ProjectApiItem[]>([]);
+  const [tasks, setTasks] = useState<TaskApiItem[]>([]);
+
+  const fetchDashboardData = React.useCallback(async (forceRefresh = false) => {
+    fetchWithCache<ProjectApiItem[]>('/api/v1/projects', 'dashboard_projects', (data) => {
+      setProjects(data);
+    }, { forceRefresh });
+
+    fetchWithCache<TaskApiItem[]>('/api/v1/tasks', 'dashboard_tasks', (data) => {
+      setTasks(data);
+    }, { forceRefresh });
+  }, []);
+
+  useEffect(() => {
+    fetchDashboardData();
+
+    const handleUpdate = () => fetchDashboardData(true);
+    window.addEventListener('projectsUpdated', handleUpdate);
+    window.addEventListener('tasksUpdated', handleUpdate);
+    window.addEventListener('taskUpdated', handleUpdate);
+
+    return () => {
+      window.removeEventListener('projectsUpdated', handleUpdate);
+      window.removeEventListener('tasksUpdated', handleUpdate);
+      window.removeEventListener('taskUpdated', handleUpdate);
+    };
+  }, [fetchDashboardData]);
+
+  const handleCreateProject = async (p: { title: string; description: string; category: string; dueDate: string }) => {
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      const res = await fetch('/api/v1/projects', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          title: p.title,
+          description: p.description,
+          category: p.category,
+          dueDate: p.dueDate || null,
+          status: 'planning',
+        }),
+      });
+
+      const resData = await res.json();
+      if (resData.success) {
+        invalidateClientCache(['dashboard_projects', 'projects_list']);
+        window.dispatchEvent(new Event('projectsUpdated'));
+        fetchDashboardData(true);
+      }
+    } catch (err) {
+      console.error('Failed to create project from dashboard:', err);
+    }
+  };
+
+  // Dynamic Calculated Metrics
+  const totalProjects = projects.length;
+  const totalTasks = tasks.length;
+  const completedTasks = tasks.filter(t => t.status === 'done' || t.status === 'completed').length;
+  const pendingTasks = totalTasks - completedTasks;
+  const completionPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+  const inProgressProjects = projects.filter(p => p.status === 'in-progress' || p.status === 'in_progress').length;
+  const completedProjects = projects.filter(p => p.status === 'completed').length;
+  const onHoldProjects = projects.filter(p => p.status === 'on-hold' || p.status === 'on_hold').length;
+  const planningProjects = projects.filter(p => p.status === 'planning').length;
+
+  // Upcoming Deadlines
+  const upcomingItems = [
+    ...projects.filter(p => p.dueDate).map(p => ({ id: p.id, name: p.title, date: p.dueDate, type: 'project' })),
+    ...tasks.filter(t => t.dueDate).map(t => ({ id: t.id, name: t.title, date: t.dueDate, type: 'task' }))
+  ].slice(0, 5);
+
+  // Recent Activities
+  const recentActivities = [
+    ...tasks.slice(0, 3).map((t, idx) => ({
+      id: `act-task-${t.id || idx}`,
+      text: `Task "${t.title}" (${t.status})`,
+      time: 'Recently updated',
+      icon: CheckCircle2,
+      iconBg: t.status === 'done' || t.status === 'completed' ? 'bg-[#C4B5FD]' : 'bg-[#FFD93D]',
+      iconColor: 'text-black'
+    })),
+    ...projects.slice(0, 2).map((p, idx) => ({
+      id: `act-proj-${p.id || idx}`,
+      text: `Project "${p.title}" created in ${p.category || 'General'}`,
+      time: 'Recently added',
+      icon: FolderPlus,
+      iconBg: 'bg-[#FF6B6B]',
+      iconColor: 'text-white'
+    }))
+  ];
+
   // Stat Card configuration data
   const stats = [
     {
       title: 'Total Projects',
-      value: '12',
-      subtext: '↑ 2 this month',
+      value: totalProjects.toString(),
+      subtext: `${inProgressProjects} in progress`,
       subtextColor: 'text-[#B91C1C]',
       icon: Folder,
       iconBg: 'bg-[#FF6B6B]',
@@ -85,8 +198,8 @@ export default function DashboardPage() {
     },
     {
       title: 'Total Tasks',
-      value: '48',
-      subtext: '↑ 8 this week',
+      value: totalTasks.toString(),
+      subtext: `${pendingTasks} pending`,
       subtextColor: 'text-[#D97706]',
       icon: CheckSquare,
       iconBg: 'bg-[#FFD93D]',
@@ -94,8 +207,8 @@ export default function DashboardPage() {
     },
     {
       title: 'Completed Tasks',
-      value: '24',
-      subtext: '↑ 12 this week',
+      value: completedTasks.toString(),
+      subtext: `${completionPercentage}% overall completion`,
       subtextColor: 'text-[#7C3AED]',
       icon: CheckCircle2,
       iconBg: 'bg-[#C4B5FD]',
@@ -103,8 +216,8 @@ export default function DashboardPage() {
     },
     {
       title: 'Pending Tasks',
-      value: '24',
-      subtext: '↓ 4 this week',
+      value: pendingTasks.toString(),
+      subtext: `${completedTasks} completed`,
       subtextColor: 'text-[#D97706]',
       icon: Clock,
       iconBg: 'bg-[#FFD93D]',
@@ -112,8 +225,8 @@ export default function DashboardPage() {
     },
     {
       title: 'Upcoming Deadlines',
-      value: '5',
-      subtext: 'Next: May 28, 2025',
+      value: upcomingItems.length.toString(),
+      subtext: upcomingItems[0] ? `Next: ${upcomingItems[0].date}` : 'No upcoming deadlines',
       subtextColor: 'text-[#7C3AED]',
       icon: Calendar,
       iconBg: 'bg-[#C4B5FD]',
@@ -124,12 +237,33 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-[#FAF8F5] bg-dot-grid text-[#121210] p-6 sm:p-8 md:p-12 pb-32 sm:pb-40 md:pb-44 font-sans relative selection:bg-[#FFD93D] selection:text-black">
       
-      {/* Back Button to Landing Page */}
-      <div className="max-w-[1440px] mx-auto mb-6">
+      {/* Back Button to Landing Page & User Profile Pill */}
+      <div className="max-w-[1440px] mx-auto mb-6 flex items-center justify-between">
         <Link href="/" className="bg-white hover:bg-zinc-50 text-black font-extrabold text-xs md:text-sm px-4 py-2 rounded-lg border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all inline-flex items-center gap-1.5 cursor-pointer">
           <ArrowLeft className="w-4 h-4 stroke-[3]" />
           <span>Back to Home</span>
         </Link>
+
+        {user && (
+          <div className="flex items-center gap-2">
+            <div className="bg-white border-2 border-black px-3 py-1.5 rounded-lg shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center gap-2 text-xs font-black text-black">
+              <div className="w-5 h-5 rounded bg-[#FFD93D] border border-black flex items-center justify-center">
+                <UserIcon className="w-3 h-3 text-black stroke-[3]" />
+              </div>
+              <span>{user.name}</span>
+              <span className="text-[10px] bg-[#C4B5FD] px-1.5 py-0.5 rounded border border-black uppercase">{user.role}</span>
+            </div>
+
+            <button
+              onClick={logout}
+              className="bg-[#FF6B6B] hover:bg-[#FF5252] text-white font-extrabold text-xs px-3 py-2 rounded-lg border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all flex items-center gap-1.5 cursor-pointer"
+              title="Sign out of account"
+            >
+              <LogOut className="w-3.5 h-3.5 stroke-[2.5]" />
+              <span className="hidden sm:inline">Logout</span>
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="max-w-[1440px] mx-auto">
@@ -146,7 +280,7 @@ export default function DashboardPage() {
               </span>
             </h1>
             <p className="text-xs sm:text-sm font-bold text-zinc-500 mt-2">
-              {"Welcome back! Here's what's happening with your projects."}
+              Welcome back, <span className="text-black font-black">{user?.name || 'Developer'}</span>! Here&apos;s what&apos;s happening with your projects.
             </p>
           </div>
 
@@ -214,8 +348,8 @@ export default function DashboardPage() {
             headerBg="bg-[#FF6B6B]"
             className="lg:col-span-5"
             action={
-              <button className="bg-white text-black font-extrabold text-xs px-3 py-1.5 rounded-md border-2 border-black hover:bg-zinc-50 transition-colors cursor-pointer">
-                This Month ∨
+              <button onClick={() => fetchDashboardData(true)} className="bg-white text-black font-extrabold text-xs px-3 py-1.5 rounded-md border-2 border-black hover:bg-zinc-50 transition-colors cursor-pointer">
+                Refresh Database
               </button>
             }
           >
@@ -224,73 +358,17 @@ export default function DashboardPage() {
               {/* Donut SVG Illustration */}
               <div className="relative w-32 h-32 shrink-0">
                 <svg viewBox="0 0 100 100" className="w-full h-full transform -rotate-90">
-                  {/* Circumference = 2 * PI * r = 2 * 3.14159 * 40 = 251.3 */}
+                  <circle cx="50" cy="50" r="40" fill="transparent" stroke="#E4E4E7" strokeWidth="12" />
+                  <circle cx="50" cy="50" r="40" fill="transparent" stroke="#C4B5FD" strokeWidth="12" strokeDasharray={`${(inProgressProjects / (totalProjects || 1)) * 251.3} 251.3`} strokeDashoffset="0" />
+                  <circle cx="50" cy="50" r="40" fill="transparent" stroke="#FFD93D" strokeWidth="12" strokeDasharray={`${(completedProjects / (totalProjects || 1)) * 251.3} 251.3`} strokeDashoffset={`-${(inProgressProjects / (totalProjects || 1)) * 251.3}`} />
+                  <circle cx="50" cy="50" r="40" fill="transparent" stroke="#FF6B6B" strokeWidth="12" strokeDasharray={`${(onHoldProjects / (totalProjects || 1)) * 251.3} 251.3`} strokeDashoffset={`-${((inProgressProjects + completedProjects) / (totalProjects || 1)) * 251.3}`} />
                   
-                  {/* Slice 1: In Progress (5/12 = 41.7%) -> Length = 104.7 */}
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r="40"
-                    fill="transparent"
-                    stroke="#C4B5FD"
-                    strokeWidth="12"
-                    strokeDasharray="104.7 251.3"
-                    strokeDashoffset="0"
-                  />
-                  {/* Slice 2: Completed (4/12 = 33.3%) -> Length = 83.8 */}
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r="40"
-                    fill="transparent"
-                    stroke="#FFD93D"
-                    strokeWidth="12"
-                    strokeDasharray="83.8 251.3"
-                    strokeDashoffset="-104.7"
-                  />
-                  {/* Slice 3: On Hold (2/12 = 16.7%) -> Length = 41.9 */}
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r="40"
-                    fill="transparent"
-                    stroke="#FF6B6B"
-                    strokeWidth="12"
-                    strokeDasharray="41.9 251.3"
-                    strokeDashoffset="-188.5"
-                  />
-                  {/* Slice 4: Not Started (1/12 = 8.3%) -> Length = 20.9 */}
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r="40"
-                    fill="transparent"
-                    stroke="#121210"
-                    strokeWidth="12"
-                    strokeDasharray="20.9 251.3"
-                    strokeDashoffset="-230.4"
-                  />
-                  
-                  {/* Outer black outline borders between sections (using simplified overlays or center hole) */}
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r="46"
-                    fill="transparent"
-                    stroke="black"
-                    strokeWidth="1"
-                  />
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r="34"
-                    fill="transparent"
-                    stroke="black"
-                    strokeWidth="1"
-                  />
+                  <circle cx="50" cy="50" r="46" fill="transparent" stroke="black" strokeWidth="1" />
+                  <circle cx="50" cy="50" r="34" fill="transparent" stroke="black" strokeWidth="1" />
                 </svg>
-                {/* Center Hole Cover */}
-                <div className="absolute inset-[17%] bg-white rounded-full border-2 border-black flex items-center justify-center" />
+                <div className="absolute inset-[17%] bg-white rounded-full border-2 border-black flex items-center justify-center font-black text-sm">
+                  {totalProjects}
+                </div>
               </div>
 
               {/* Chart Legend */}
@@ -300,40 +378,40 @@ export default function DashboardPage() {
                     <span className="w-3 h-3 rounded-full bg-[#C4B5FD] border border-black" />
                     <span className="text-zinc-600">In Progress</span>
                   </div>
-                  <span>5</span>
+                  <span>{inProgressProjects}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs font-black">
                   <div className="flex items-center gap-2">
                     <span className="w-3 h-3 rounded-full bg-[#FFD93D] border border-black" />
                     <span className="text-zinc-600">Completed</span>
                   </div>
-                  <span>4</span>
+                  <span>{completedProjects}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs font-black">
                   <div className="flex items-center gap-2">
                     <span className="w-3 h-3 rounded-full bg-[#FF6B6B] border border-black" />
                     <span className="text-zinc-600">On Hold</span>
                   </div>
-                  <span>2</span>
+                  <span>{onHoldProjects}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs font-black">
                   <div className="flex items-center gap-2">
                     <span className="w-3 h-3 rounded-full bg-[#121210] border border-black" />
-                    <span className="text-zinc-600">Not Started</span>
+                    <span className="text-zinc-600">Planning</span>
                   </div>
-                  <span>1</span>
+                  <span>{planningProjects}</span>
                 </div>
               </div>
             </div>
 
             {/* Bottom Total Project Card Box */}
             <div className="bg-[#FAF8F5] border-2 border-black p-3.5 rounded-xl flex items-center justify-between text-xs font-black mt-4">
-              <span className="text-zinc-700">Total Projects</span>
-              <span>12</span>
+              <span className="text-zinc-700">Total Database Projects</span>
+              <span>{totalProjects}</span>
             </div>
           </DashboardCard>
 
-          {/* 2. Task Progress (50% Completion ring SVG) */}
+          {/* 2. Task Progress (Completion ring SVG) */}
           <DashboardCard
             title="Task Progress"
             icon={LineChart}
@@ -345,40 +423,15 @@ export default function DashboardPage() {
               {/* Circular Progress Gauge */}
               <div className="relative w-28 h-28 flex items-center justify-center">
                 <svg viewBox="0 0 100 100" className="w-full h-full transform -rotate-90">
-                  {/* Circumference = 2 * PI * r = 2 * 3.14159 * 45 = 282.7 */}
+                  <circle cx="50" cy="50" r="42" fill="transparent" stroke="#E4E4E7" strokeWidth="10" strokeDasharray="263.9" strokeDashoffset="0" />
+                  <circle cx="50" cy="50" r="42" fill="transparent" stroke="#FFD93D" strokeWidth="10" strokeDasharray={`${(completionPercentage / 100) * 263.9} 263.9`} strokeDashoffset="0" strokeLinecap="round" />
                   
-                  {/* Base Track */}
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r="42"
-                    fill="transparent"
-                    stroke="#E4E4E7"
-                    strokeWidth="10"
-                    strokeDasharray="263.9"
-                    strokeDashoffset="0"
-                  />
-                  {/* Progress Slice (50% Completion) */}
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r="42"
-                    fill="transparent"
-                    stroke="#FFD93D"
-                    strokeWidth="10"
-                    strokeDasharray="132 263.9"
-                    strokeDashoffset="0"
-                    strokeLinecap="round"
-                  />
-                  
-                  {/* Neo-brutalist circle bounds */}
                   <circle cx="50" cy="50" r="47" fill="transparent" stroke="black" strokeWidth="1" />
                   <circle cx="50" cy="50" r="37" fill="transparent" stroke="black" strokeWidth="1" />
                 </svg>
                 
-                {/* Center Number label */}
                 <div className="absolute font-black text-2xl text-black">
-                  50%
+                  {completionPercentage}%
                 </div>
               </div>
 
@@ -388,7 +441,7 @@ export default function DashboardPage() {
                   Overall Completion
                 </div>
                 <div className="text-xs font-bold text-zinc-500">
-                  24 of 48 tasks completed
+                  {completedTasks} of {totalTasks} tasks completed
                 </div>
               </div>
 
@@ -403,28 +456,23 @@ export default function DashboardPage() {
             className="lg:col-span-4"
           >
             <div className="space-y-3.5 py-1">
-              {[
-                { name: 'Project Landing Page', date: 'May 28', color: 'bg-[#FF6B6B]' },
-                { name: 'Database Integration', date: 'May 30', color: 'bg-[#FFD93D]' },
-                { name: 'AI Feature Implementation', date: 'Jun 02', color: 'bg-[#C4B5FD]' },
-                { name: 'Testing & Bug Fixes', date: 'Jun 05', color: 'bg-[#121210]' },
-                { name: 'Project Documentation', date: 'Jun 08', color: 'bg-[#FF6B6B]' },
-              ].map((item, idx) => (
-                <div 
-                  key={idx} 
-                  className="flex items-center justify-between border-b border-zinc-150 pb-2.5 last:border-0 last:pb-0 text-xs"
-                >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <span className={cn("w-2.5 h-2.5 rounded-full border border-black shrink-0", item.color)} />
-                    <span className="font-extrabold text-black truncate">{item.name}</span>
+              {upcomingItems.length > 0 ? (
+                upcomingItems.map((item, idx) => (
+                  <div key={idx} className="flex items-center justify-between border-b border-zinc-150 pb-2.5 last:border-0 last:pb-0 text-xs">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span className={cn("w-2.5 h-2.5 rounded-full border border-black shrink-0", item.type === 'project' ? "bg-[#FF6B6B]" : "bg-[#FFD93D]")} />
+                      <span className="font-extrabold text-black truncate">{item.name}</span>
+                    </div>
+                    <span className="bg-[#FFEAEA] border-2 border-black text-[#B91C1C] font-black text-[10px] px-2.5 py-0.5 rounded-md shadow-[1.5px_1.5px_0px_rgba(0,0,0,1)] shrink-0">
+                      {item.date}
+                    </span>
                   </div>
-                  
-                  {/* Date Badge */}
-                  <span className="bg-[#FFEAEA] border-2 border-black text-[#B91C1C] font-black text-[10px] px-2.5 py-0.5 rounded-md shadow-[1.5px_1.5px_0px_rgba(0,0,0,1)] shrink-0">
-                    {item.date}
-                  </span>
+                ))
+              ) : (
+                <div className="text-xs font-bold text-zinc-500 italic py-6 text-center">
+                  No upcoming deadlines found in database.
                 </div>
-              ))}
+              )}
             </div>
           </DashboardCard>
 
@@ -441,71 +489,32 @@ export default function DashboardPage() {
             icon={Activity}
             headerBg="bg-[#C4B5FD]"
             action={
-              <button className="bg-white text-black font-extrabold text-xs px-3 py-1.5 rounded-md border-2 border-black hover:bg-zinc-50 transition-colors cursor-pointer">
-                View All
+              <button onClick={() => fetchDashboardData(true)} className="bg-white text-black font-extrabold text-xs px-3 py-1.5 rounded-md border-2 border-black hover:bg-zinc-50 transition-colors cursor-pointer">
+                Refresh
               </button>
             }
           >
             <div className="space-y-4">
-              {[
-                { 
-                  text: 'Created a new project "AI Dashboard"', 
-                  time: '2h ago',
-                  icon: FolderPlus,
-                  iconBg: 'bg-[#FF6B6B]',
-                  iconColor: 'text-white'
-                },
-                { 
-                  text: 'Completed task "UI Design System"', 
-                  time: '5h ago',
-                  icon: CheckCircle2,
-                  iconBg: 'bg-[#FFD93D]',
-                  iconColor: 'text-black'
-                },
-                { 
-                  text: 'Deadline updated for "Database Integration"', 
-                  time: '1d ago',
-                  icon: CalendarDays,
-                  iconBg: 'bg-[#C4B5FD]',
-                  iconColor: 'text-black'
-                },
-                { 
-                  text: 'Added a new note in "Project Atlas"', 
-                  time: '2d ago',
-                  icon: FileText,
-                  iconBg: 'bg-[#C4B5FD]',
-                  iconColor: 'text-black'
-                },
-              ].map((activity, idx) => {
-                const ActIcon = activity.icon;
-                return (
-                  <div 
-                    key={idx}
-                    className="flex items-center justify-between border-b border-zinc-150 pb-3 last:border-0 last:pb-0"
-                  >
-                    <div className="flex items-center gap-3.5 min-w-0">
-                      {/* Icon bubble */}
-                      <div className={cn(
-                        "w-9 h-9 rounded-lg border border-black flex items-center justify-center shadow-[1px_1px_0px_rgba(0,0,0,1)] shrink-0",
-                        activity.iconBg,
-                        activity.iconColor
-                      )}>
-                        <ActIcon className="w-4 h-4" />
+              {recentActivities.length > 0 ? (
+                recentActivities.map((activity) => {
+                  const ActIcon = activity.icon;
+                  return (
+                    <div key={activity.id} className="flex items-center justify-between border-b border-zinc-150 pb-3 last:border-0 last:pb-0">
+                      <div className="flex items-center gap-3.5 min-w-0">
+                        <div className={cn("w-9 h-9 rounded-lg border border-black flex items-center justify-center shadow-[1px_1px_0px_rgba(0,0,0,1)] shrink-0", activity.iconBg, activity.iconColor)}>
+                          <ActIcon className="w-4 h-4" />
+                        </div>
+                        <span className="text-xs font-bold text-zinc-700 truncate pr-2">{activity.text}</span>
                       </div>
-                      
-                      {/* Description */}
-                      <span className="text-xs font-bold text-zinc-700 truncate pr-2">
-                        {activity.text}
-                      </span>
+                      <span className="text-[10px] sm:text-xs font-bold text-zinc-400 shrink-0">{activity.time}</span>
                     </div>
-
-                    {/* Timestamp */}
-                    <span className="text-[10px] sm:text-xs font-bold text-zinc-400 shrink-0">
-                      {activity.time}
-                    </span>
-                  </div>
-                );
-              })}
+                  );
+                })
+              ) : (
+                <div className="text-xs font-bold text-zinc-500 italic py-6 text-center">
+                  No recent activities recorded yet.
+                </div>
+              )}
             </div>
           </DashboardCard>
 
@@ -528,20 +537,14 @@ export default function DashboardPage() {
                 {/* Dialogue Text */}
                 <div className="space-y-1 flex-grow">
                   <div className="font-black text-xs sm:text-sm text-black flex items-center gap-1.5">
-                    <span>{"You're doing great!"}</span>
+                    <span>{`Welcome ${user?.name || 'User'}!`}</span>
                     <span>🚀</span>
                   </div>
                   <p className="text-[10px] sm:text-xs font-bold text-zinc-500 leading-normal max-w-sm">
-                    {"You've completed 12 more tasks this week. Keep maintaining this pace!"}
+                    {totalTasks > 0
+                      ? `You currently have ${completedTasks} completed out of ${totalTasks} total tasks in your workspace database.`
+                      : 'You have no tasks created yet. Use AI Copilot or New Task to generate your first task list!'}
                   </p>
-                  
-                  {/* View Full Insight link button */}
-                  <div className="pt-2">
-                    <button className="bg-white border-2 border-[#FF6B6B] text-[#FF6B6B] font-black text-[10px] sm:text-xs px-3.5 py-1.5 rounded-lg hover:bg-[#FFEAEA] transition-colors cursor-pointer flex items-center gap-1">
-                      <span>View Full Insight</span>
-                      <ArrowRight className="w-3.5 h-3.5 stroke-[3]" />
-                    </button>
-                  </div>
                 </div>
 
               </div>
@@ -549,42 +552,17 @@ export default function DashboardPage() {
               {/* Bottom Custom SVG Graph illustration with trend arrow */}
               <div className="flex items-end justify-between px-2 pt-2 border-t border-zinc-150 relative">
                 
-                {/* Graph bars custom drawing */}
                 <div className="flex items-end gap-3.5 h-16 w-3/5 pb-1 relative z-10">
-                  {/* Bar 1 */}
-                  <div className="w-5 h-2 bg-[#FF6B6B] border border-black rounded-sm shadow-[1px_1px_0px_rgba(0,0,0,1)]" />
-                  {/* Bar 2 */}
+                  <div className="w-5 h-4 bg-[#FF6B6B] border border-black rounded-sm shadow-[1px_1px_0px_rgba(0,0,0,1)]" />
                   <div className="w-5 h-8 bg-[#FFD93D] border border-black rounded-sm shadow-[1px_1px_0px_rgba(0,0,0,1)]" />
-                  {/* Bar 3 */}
                   <div className="w-5 h-10 bg-[#FFD93D] border border-black rounded-sm shadow-[1px_1px_0px_rgba(0,0,0,1)]" />
-                  {/* Bar 4 */}
                   <div className="w-5 h-14 bg-[#C4B5FD] border border-black rounded-sm shadow-[1px_1px_0px_rgba(0,0,0,1)]" />
                 </div>
 
-                {/* SVG trend line overlay */}
                 <div className="absolute bottom-2 left-2 w-4/5 h-20 pointer-events-none z-20">
                   <svg className="w-full h-full" viewBox="0 0 160 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    {/* Rising trend path with thick black stroke */}
-                    <path 
-                      d="M10 68 L48 48 L86 44 L126 14" 
-                      stroke="black" 
-                      strokeWidth="3.5" 
-                      strokeLinecap="round" 
-                      strokeLinejoin="round" 
-                    />
-                    {/* Arrow head tip */}
-                    <path 
-                      d="M116 12 L128 12 L126 24" 
-                      stroke="black" 
-                      strokeWidth="3.5" 
-                      strokeLinecap="round" 
-                      strokeLinejoin="round" 
-                    />
-                    
-                    {/* Speed tick marks around arrow */}
-                    <path d="M136 10 L144 8" stroke="black" strokeWidth="2" strokeLinecap="round" />
-                    <path d="M134 22 L142 24" stroke="black" strokeWidth="2" strokeLinecap="round" />
-                    <path d="M128 2 L132 0" stroke="black" strokeWidth="2" strokeLinecap="round" />
+                    <path d="M10 68 L48 48 L86 44 L126 14" stroke="black" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M116 12 L128 12 L126 24" stroke="black" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 </div>
               </div>
@@ -599,7 +577,7 @@ export default function DashboardPage() {
       <NewProjectModal 
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onSubmit={(p) => alert(`Project "${p.title}" created successfully!`)}
+        onSubmit={handleCreateProject}
       />
     </div>
   );

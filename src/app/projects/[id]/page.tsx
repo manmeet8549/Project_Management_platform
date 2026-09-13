@@ -2,9 +2,12 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { useParams, useRouter } from 'next/navigation';
 import { NewTaskModal } from '@/components/modals/NewTaskModal';
 import { EditTaskModal } from '@/components/modals/EditTaskModal';
 import { NewCredentialModal } from '@/components/modals/NewCredentialModal';
+import { ProjectSettingsModal } from '@/components/modals/ProjectSettingsModal';
+import { fetchWithCache, invalidateClientCache } from '@/lib/client/clientCache';
 import { motion } from 'framer-motion';
 import { 
   ArrowLeft, 
@@ -27,10 +30,6 @@ import {
   Edit3,
   Trash2,
   SlidersHorizontal,
-  ChevronLeft,
-  ChevronRight,
-  Sparkles,
-  Zap,
   Eye,
   EyeOff
 } from 'lucide-react';
@@ -62,18 +61,7 @@ interface NoteItem {
   }[];
 }
 
-interface ActivityItem {
-  id: string;
-  actionTitle: string;
-  itemBadge: string;
-  badgeBg: string;
-  fromBadge?: string;
-  toBadge?: string;
-  subIcon: React.ComponentType<{ className?: string }>;
-  subIconBg: string;
-  subLabel: string;
-  timestamp: string;
-}
+
 
 const credentialsData: CredentialItem[] = [
   {
@@ -272,82 +260,33 @@ const notesData: NoteItem[] = [
   }
 ];
 
-const activityTimelineData: ActivityItem[] = [
-  {
-    id: '1',
-    actionTitle: 'Task Completed',
-    itemBadge: 'Database Schema Design',
-    badgeBg: 'bg-[#DCFCE7] text-[#15803D]',
-    subIcon: CheckCircle2,
-    subIconBg: 'bg-[#DCFCE7] text-[#15803D]',
-    subLabel: 'Task Completed',
-    timestamp: 'May 22, 2025 • 10:30 AM',
-  },
-  {
-    id: '2',
-    actionTitle: 'Task Moved',
-    itemBadge: 'Implement Authentication',
-    badgeBg: 'bg-[#FEF3C7] text-[#D97706]',
-    fromBadge: 'To Do',
-    toBadge: 'In Progress',
-    subIcon: CheckSquare,
-    subIconBg: 'bg-[#FEF3C7] text-[#D97706]',
-    subLabel: 'Task Updated',
-    timestamp: 'May 22, 2025 • 09:45 AM',
-  },
-  {
-    id: '3',
-    actionTitle: 'Note Added',
-    itemBadge: 'Client Requirements',
-    badgeBg: 'bg-[#F3E8FF] text-[#7C3AED]',
-    subIcon: FileText,
-    subIconBg: 'bg-[#F3E8FF] text-[#7C3AED]',
-    subLabel: 'Note Added',
-    timestamp: 'May 22, 2025 • 09:15 AM',
-  },
-  {
-    id: '4',
-    actionTitle: 'Credential Added',
-    itemBadge: 'Production API Key',
-    badgeBg: 'bg-[#FFEAEA] text-[#B91C1C]',
-    subIcon: Lock,
-    subIconBg: 'bg-[#FFEAEA] text-[#B91C1C]',
-    subLabel: 'Credential Added',
-    timestamp: 'May 21, 2025 • 06:20 PM',
-  },
-  {
-    id: '5',
-    actionTitle: 'Note Updated',
-    itemBadge: 'Project Requirements',
-    badgeBg: 'bg-[#F3E8FF] text-[#7C3AED]',
-    subIcon: FileText,
-    subIconBg: 'bg-[#F3E8FF] text-[#7C3AED]',
-    subLabel: 'Note Updated',
-    timestamp: 'May 21, 2025 • 04:10 PM',
-  },
-  {
-    id: '6',
-    actionTitle: 'Task Completed',
-    itemBadge: 'Setup Project Repository',
-    badgeBg: 'bg-[#DCFCE7] text-[#15803D]',
-    subIcon: CheckCircle2,
-    subIconBg: 'bg-[#DCFCE7] text-[#15803D]',
-    subLabel: 'Task Completed',
-    timestamp: 'May 21, 2025 • 11:30 AM',
-  },
-  {
-    id: '7',
-    actionTitle: 'Task Created',
-    itemBadge: 'Payment Integration',
-    badgeBg: 'bg-[#E0F2FE] text-[#0369A1]',
-    subIcon: Plus,
-    subIconBg: 'bg-[#E0F2FE] text-[#0369A1]',
-    subLabel: 'Task Created',
-    timestamp: 'May 20, 2025 • 08:50 PM',
-  },
-];
+
+interface RawProjectApiDetail {
+  id: string;
+  title: string;
+  category?: string;
+  status?: string;
+  description?: string;
+  dueDate?: string | null;
+}
+
+interface RawTaskApiDetail {
+  id: string;
+  projectId: string;
+  title: string;
+  priority?: string;
+  status?: string;
+  dueDate?: string | null;
+  description?: string | null;
+}
 
 export default function ProjectDetailsPage() {
+  const params = useParams();
+  const router = useRouter();
+  const rawProjectId = (params?.id as string) || '';
+
+  const [projectDetail, setProjectDetail] = useState<RawProjectApiDetail | null>(null);
+  const [isProjectSettingsOpen, setIsProjectSettingsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'tasks' | 'credentials' | 'notes' | 'activity'>('tasks');
   const [selectedNoteId, setSelectedNoteId] = useState<string>('1');
 
@@ -364,99 +303,230 @@ export default function ProjectDetailsPage() {
     time?: string;
   }
 
-  const [allTasks, setAllTasks] = useState<TaskItem[]>([
-    // To Do
-    { id: 't1', title: 'Design Homepage', prio: 'High Priority', prioBg: 'bg-[#FF6B6B]', date: 'May 28', count: 2, status: 'To Do' },
-    { id: 't2', title: 'Setup Product Database', prio: 'Medium Priority', prioBg: 'bg-[#FFD93D]', date: 'May 30', count: 1, status: 'To Do' },
-    { id: 't3', title: 'Create Product Listing Page', prio: 'Low Priority', prioBg: 'bg-[#C4B5FD]', date: 'Jun 02', count: 0, status: 'To Do' },
-    { id: 't4', title: 'Setup Payment Gateway', prio: 'High Priority', prioBg: 'bg-[#FF6B6B]', date: 'Jun 05', count: 3, status: 'To Do' },
-    { id: 't5', title: 'Design Checkout Flow', prio: 'Medium Priority', prioBg: 'bg-[#FFD93D]', date: 'Jun 07', count: 1, status: 'To Do' },
-    // In Progress
-    { id: 'p1', title: 'Implement User Authentication', prio: 'High Priority', prioBg: 'bg-[#FF6B6B]', date: 'May 25', count: 3, comment: 'Please use Supabase Auth for better security.', time: '2h ago', status: 'In Progress' },
-    { id: 'p2', title: 'Build Shopping Cart', prio: 'Medium Priority', prioBg: 'bg-[#FFD93D]', date: 'May 27', count: 2, comment: 'Add coupon code functionality as well.', time: '5h ago', status: 'In Progress' },
-    { id: 'p3', title: 'Admin Dashboard UI', prio: 'Low Priority', prioBg: 'bg-[#C4B5FD]', date: 'Jun 01', count: 1, comment: "Let's keep it minimal and clean.", time: '1d ago', status: 'In Progress' },
-    // Completed
-    { id: 'c1', title: 'Project Setup', prio: 'Low Priority', prioBg: 'bg-[#C4B5FD]', date: 'May 10', count: 0, status: 'Completed' },
-    { id: 'c2', title: 'Repository Setup', prio: 'Low Priority', prioBg: 'bg-[#C4B5FD]', date: 'May 10', count: 0, status: 'Completed' },
-    { id: 'c3', title: 'Setup Supabase Project', prio: 'Medium Priority', prioBg: 'bg-[#FFD93D]', date: 'May 12', count: 0, status: 'Completed' },
-    { id: 'c4', title: 'Database Schema Design', prio: 'Medium Priority', prioBg: 'bg-[#FFD93D]', date: 'May 15', count: 0, status: 'Completed' },
-    { id: 'c5', title: 'Create Wireframes', prio: 'Low Priority', prioBg: 'bg-[#C4B5FD]', date: 'May 16', count: 0, status: 'Completed' },
-  ]);
+  const [allTasks, setAllTasks] = useState<TaskItem[]>([]);
+
+  const fetchProjectAndTasks = React.useCallback(async (forceRefresh = false) => {
+    try {
+      let projData: RawProjectApiDetail | null = null;
+      let tasksList: RawTaskApiDetail[] = [];
+
+      await Promise.all([
+        fetchWithCache<RawProjectApiDetail>(`/api/v1/projects/${rawProjectId}`, `project_detail_${rawProjectId}`, (data) => {
+          projData = data;
+          setProjectDetail(data);
+        }, { forceRefresh }),
+        fetchWithCache<RawTaskApiDetail[]>('/api/v1/tasks', 'tasks_list', (data) => {
+          tasksList = data;
+        }, { forceRefresh }),
+      ]);
+
+      if (tasksList && Array.isArray(tasksList)) {
+        const matchingTasks: RawTaskApiDetail[] = tasksList.filter((t: RawTaskApiDetail) => 
+          !rawProjectId || t.projectId === rawProjectId || rawProjectId.startsWith('proj-') || (projData && t.projectId === (projData as RawProjectApiDetail).id)
+        );
+
+        const mappedTasks: TaskItem[] = matchingTasks.map((t: RawTaskApiDetail) => {
+          const rawPrio = t.priority === 'urgent' || t.priority === 'high' ? 'High Priority' : t.priority === 'medium' ? 'Medium Priority' : 'Low Priority';
+          const prioBg = rawPrio === 'High Priority' ? 'bg-[#FF6B6B]' : rawPrio === 'Medium Priority' ? 'bg-[#FFD93D]' : 'bg-[#C4B5FD]';
+
+          const mappedStatus: 'To Do' | 'In Progress' | 'Completed' = 
+            (t.status === 'done' || t.status === 'completed') ? 'Completed' : 
+            (t.status === 'in_progress' || t.status === 'in-progress') ? 'In Progress' : 'To Do';
+
+          return {
+            id: t.id,
+            title: t.title,
+            prio: rawPrio,
+            prioBg,
+            date: t.dueDate || 'No Due Date',
+            count: 0,
+            status: mappedStatus,
+            comment: t.description || undefined,
+            time: 'DB record'
+          };
+        });
+
+        setAllTasks(mappedTasks);
+      }
+    } catch (err) {
+      console.error('Failed to load project details and tasks:', err);
+    }
+  }, [rawProjectId]);
+
+  const fetchCredentials = React.useCallback(async (forceRefresh = false) => {
+    if (!rawProjectId) return;
+    try {
+      const res = await fetchWithCache<{ data: CredentialItem[] }>(
+        `/api/v1/credentials?projectId=${rawProjectId}`,
+        `credentials_${rawProjectId}`,
+        forceRefresh
+      );
+      if (res?.data && Array.isArray(res.data)) {
+        setCredentials(res.data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch credentials:', err);
+    }
+  }, [rawProjectId]);
+
+  const fetchNotes = React.useCallback(async (forceRefresh = false) => {
+    if (!rawProjectId) return;
+    try {
+      const res = await fetchWithCache<{ data: NoteItem[] }>(
+        `/api/v1/notes?projectId=${rawProjectId}`,
+        `notes_${rawProjectId}`,
+        forceRefresh
+      );
+      if (res?.data && Array.isArray(res.data) && res.data.length > 0) {
+        setNotes(res.data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch notes:', err);
+    }
+  }, [rawProjectId]);
+
+  React.useEffect(() => {
+    fetchProjectAndTasks();
+    fetchCredentials();
+    fetchNotes();
+
+    const handleUpdate = () => fetchProjectAndTasks(true);
+    const handleCredsUpdate = () => fetchCredentials(true);
+    const handleNotesUpdate = () => fetchNotes(true);
+
+    window.addEventListener('projectsUpdated', handleUpdate);
+    window.addEventListener('tasksUpdated', handleUpdate);
+    window.addEventListener('taskUpdated', handleUpdate);
+    window.addEventListener('credentialsUpdated', handleCredsUpdate);
+    window.addEventListener('notesUpdated', handleNotesUpdate);
+
+    return () => {
+      window.removeEventListener('projectsUpdated', handleUpdate);
+      window.removeEventListener('tasksUpdated', handleUpdate);
+      window.removeEventListener('taskUpdated', handleUpdate);
+      window.removeEventListener('credentialsUpdated', handleCredsUpdate);
+      window.removeEventListener('notesUpdated', handleNotesUpdate);
+    };
+  }, [fetchProjectAndTasks, fetchCredentials, fetchNotes]);
 
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [activeTaskColumn, setActiveTaskColumn] = useState<'To Do' | 'In Progress' | 'Completed'>('To Do');
   const [dragOverColumn, setDragOverColumn] = useState<'To Do' | 'In Progress' | 'Completed' | null>(null);
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
 
-  const handleAddTask = (newTask: { title: string; priority: 'High Priority' | 'Medium Priority' | 'Low Priority' }) => {
-    const prioBgs = {
-      'High Priority': 'bg-[#FF6B6B]',
-      'Medium Priority': 'bg-[#FFD93D]',
-      'Low Priority': 'bg-[#C4B5FD]'
-    };
-    
-    const taskObj: TaskItem = {
-      id: Math.random().toString(),
-      title: newTask.title,
-      prio: newTask.priority,
-      prioBg: prioBgs[newTask.priority],
-      date: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit' }),
-      count: 0,
-      status: activeTaskColumn,
-      comment: activeTaskColumn === 'In Progress' ? 'Initial implementation tasks.' : undefined,
-      time: activeTaskColumn === 'In Progress' ? 'Just now' : undefined
-    };
-    
-    setAllTasks(prev => [taskObj, ...prev]);
+  const handleAddTask = async (newTask: { title: string; priority: 'High Priority' | 'Medium Priority' | 'Low Priority' }) => {
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      const mappedPrio = newTask.priority === 'High Priority' ? 'high' : newTask.priority === 'Medium Priority' ? 'medium' : 'low';
+      const mappedStatus = activeTaskColumn === 'Completed' ? 'completed' : activeTaskColumn === 'In Progress' ? 'in-progress' : 'todo';
+
+      const res = await fetch('/api/v1/tasks', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          title: newTask.title,
+          priority: mappedPrio,
+          status: mappedStatus,
+          projectId: projectDetail?.id || rawProjectId || 'proj-1',
+        }),
+      });
+
+      const resData = await res.json();
+      if (resData.success) {
+        invalidateClientCache(['tasks_list', 'dashboard_tasks', 'projects_list', `project_detail_${rawProjectId}`]);
+        window.dispatchEvent(new Event('tasksUpdated'));
+        fetchProjectAndTasks(true);
+      }
+    } catch (err) {
+      console.error('Failed to create task:', err);
+    }
   };
 
-  const handleMoveTask = (taskId: string, targetStatus: 'To Do' | 'In Progress' | 'Completed') => {
-    setAllTasks(prev => prev.map(task => {
-      if (task.id === taskId) {
-        const updatedTask = { ...task, status: targetStatus };
-        if (targetStatus === 'In Progress' && !task.comment) {
-          updatedTask.comment = 'Moved to In Progress';
-          updatedTask.time = 'Just now';
-        }
-        return updatedTask;
+  const handleMoveTask = async (taskId: string, targetStatus: 'To Do' | 'In Progress' | 'Completed') => {
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      const mappedStatus = targetStatus === 'Completed' ? 'completed' : targetStatus === 'In Progress' ? 'in-progress' : 'todo';
+
+      const res = await fetch(`/api/v1/tasks/${taskId}/status`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({ status: mappedStatus }),
+      });
+
+      const resData = await res.json();
+      if (resData.success) {
+        invalidateClientCache(['tasks_list', 'dashboard_tasks', 'projects_list', `project_detail_${rawProjectId}`]);
+        window.dispatchEvent(new Event('tasksUpdated'));
+        fetchProjectAndTasks(true);
+      } else {
+        setAllTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: targetStatus } : t));
       }
-      return task;
-    }));
+    } catch (err) {
+      console.error('Failed to update task status:', err);
+      setAllTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: targetStatus } : t));
+    }
   };
 
   // Edit Task States
   const [isEditTaskModalOpen, setIsEditTaskModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<TaskItem | null>(null);
 
-  const handleUpdateTask = (updated: { id: string; title: string; priority: 'High Priority' | 'Medium Priority' | 'Low Priority'; comment?: string }) => {
-    const prioBgs = {
-      'High Priority': 'bg-[#FF6B6B]',
-      'Medium Priority': 'bg-[#FFD93D]',
-      'Low Priority': 'bg-[#C4B5FD]'
-    };
+  const handleUpdateTask = async (updated: { id: string; title: string; priority: 'High Priority' | 'Medium Priority' | 'Low Priority'; comment?: string }) => {
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
 
-    setAllTasks(prev => prev.map(task => {
-      if (task.id === updated.id) {
-        return {
-          ...task,
+      const mappedPrio = updated.priority === 'High Priority' ? 'high' : updated.priority === 'Medium Priority' ? 'medium' : 'low';
+
+      const res = await fetch(`/api/v1/tasks/${updated.id}`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({
           title: updated.title,
-          prio: updated.priority,
-          prioBg: prioBgs[updated.priority],
-          comment: updated.comment || undefined,
-          time: updated.comment && !task.comment ? 'Just now' : task.time,
-          count: updated.comment ? 1 : 0
-        };
+          priority: mappedPrio,
+          description: updated.comment || '',
+        }),
+      });
+
+      const resData = await res.json();
+      if (resData.success) {
+        invalidateClientCache(['tasks_list', 'dashboard_tasks', 'projects_list', `project_detail_${rawProjectId}`]);
+        window.dispatchEvent(new Event('tasksUpdated'));
+        fetchProjectAndTasks(true);
       }
-      return task;
-    }));
+    } catch (err) {
+      console.error('Failed to update task:', err);
+    }
   };
 
-  const handleDeleteTask = (taskId: string) => {
-    setAllTasks(prev => prev.filter(t => t.id !== taskId));
+  const handleDeleteTask = async (taskId: string) => {
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      await fetch(`/api/v1/tasks/${taskId}`, {
+        method: 'DELETE',
+        headers,
+      });
+      invalidateClientCache(['tasks_list', 'dashboard_tasks', 'projects_list', `project_detail_${rawProjectId}`]);
+      window.dispatchEvent(new Event('tasksUpdated'));
+      fetchProjectAndTasks(true);
+    } catch (err) {
+      console.error('Failed to delete task:', err);
+      setAllTasks(prev => prev.filter(t => t.id !== taskId));
+    }
   };
 
   // Credentials States
-  const [credentials, setCredentials] = useState<CredentialItem[]>(credentialsData);
+  const [credentials, setCredentials] = useState<CredentialItem[]>([]);
   const [isCredentialModalOpen, setIsCredentialModalOpen] = useState(false);
   const [visibleFields, setVisibleFields] = useState<Record<string, boolean>>({});
 
@@ -468,7 +538,7 @@ export default function ProjectDetailsPage() {
     }));
   };
 
-  const handleCreateCredential = (newCred: { title: string; category: string; fields: CredentialField[] }) => {
+  const handleCreateCredential = async (newCred: { title: string; category: string; fields: CredentialField[] }) => {
     const catBgs: Record<string, string> = {
       'Development': 'bg-[#FFEAEA] text-[#B91C1C]',
       'Backend': 'bg-[#DCFCE7] text-[#15803D]',
@@ -476,20 +546,54 @@ export default function ProjectDetailsPage() {
       'Payment': 'bg-[#FEF3C7] text-[#D97706]',
       'Email Service': 'bg-[#E0F2FE] text-[#0369A1]',
       'Storage': 'bg-[#E0F2FE] text-[#0369A1]',
+      'Database & Auth': 'bg-[#DCFCE7] text-[#15803D]',
     };
 
     const bg = catBgs[newCred.category] || 'bg-[#F3E8FF] text-[#7C3AED]';
 
-    const credObj: CredentialItem = {
-      id: Math.random().toString(),
-      title: newCred.title,
-      category: newCred.category,
-      categoryBg: bg,
-      addedOn: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
-      fields: newCred.fields
-    };
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
 
-    setCredentials(prev => [credObj, ...prev]);
+      const res = await fetch('/api/v1/credentials', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          projectId: rawProjectId,
+          title: newCred.title,
+          category: newCred.category,
+          categoryBg: bg,
+          addedOn: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
+          fields: newCred.fields,
+        }),
+      });
+
+      if (res.ok) {
+        invalidateClientCache([`credentials_${rawProjectId}`]);
+        window.dispatchEvent(new Event('credentialsUpdated'));
+        fetchCredentials(true);
+      }
+    } catch (err) {
+      console.error('Error creating credential:', err);
+    }
+  };
+
+  const handleDeleteCredential = async (credId: string) => {
+    if (!confirm('Are you sure you want to delete this credential?')) return;
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+      const headers: Record<string, string> = {};
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      await fetch(`/api/v1/credentials/${credId}`, { method: 'DELETE', headers });
+      invalidateClientCache([`credentials_${rawProjectId}`]);
+      window.dispatchEvent(new Event('credentialsUpdated'));
+      fetchCredentials(true);
+    } catch (err) {
+      console.error('Error deleting credential:', err);
+      setCredentials(prev => prev.filter(c => c.id !== credId));
+    }
   };
 
   // Derive columns
@@ -497,27 +601,63 @@ export default function ProjectDetailsPage() {
   const inProgressTasks = allTasks.filter(t => t.status === 'In Progress');
   const completedTasksState = allTasks.filter(t => t.status === 'Completed');
 
-  const [notes, setNotes] = useState(notesData);
+  const [notes, setNotes] = useState<NoteItem[]>([]);
   const selectedNote = notes.find(n => n.id === selectedNoteId) || notes[0];
 
-  const handleAddNewNote = () => {
+  const handleAddNewNote = async () => {
     const title = prompt('Enter note title:');
     if (!title) return;
-    const newNote = {
-      id: (notes.length + 1).toString(),
-      title: title,
-      excerpt: 'Newly added note. Click to see details.',
-      date: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
-      updated: 'Updated Just now',
-      sections: [
-        {
-          heading: '1. Checklist / Action Items',
-          items: ['First action item (double-click to edit)', 'Second action item']
-        }
-      ]
-    };
-    setNotes([...notes, newNote]);
-    setSelectedNoteId(newNote.id);
+    const excerptText = prompt('Enter a short summary / description for this note:') || 'New project note created.';
+    
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      const res = await fetch('/api/v1/notes', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          projectId: rawProjectId,
+          title,
+          excerpt: excerptText,
+          date: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
+          sections: [
+            {
+              heading: '1. Technical Specifications & Requirements',
+              items: ['Initial requirement statement', 'Review specs and checklist'],
+            },
+          ],
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        invalidateClientCache([`notes_${rawProjectId}`]);
+        window.dispatchEvent(new Event('notesUpdated'));
+        await fetchNotes(true);
+        if (data.data?.id) setSelectedNoteId(data.data.id);
+      }
+    } catch (err) {
+      console.error('Error creating note:', err);
+    }
+  };
+
+  const handleDeleteNote = async (noteId: string) => {
+    if (!confirm('Are you sure you want to delete this note?')) return;
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+      const headers: Record<string, string> = {};
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      await fetch(`/api/v1/notes/${noteId}`, { method: 'DELETE', headers });
+      invalidateClientCache([`notes_${rawProjectId}`]);
+      window.dispatchEvent(new Event('notesUpdated'));
+      fetchNotes(true);
+    } catch (err) {
+      console.error('Error deleting note:', err);
+      setNotes(prev => prev.filter(n => n.id !== noteId));
+    }
   };
 
   return (
@@ -532,7 +672,10 @@ export default function ProjectDetailsPage() {
           <span>Back to Projects</span>
         </Link>
 
-        <button className="bg-white hover:bg-zinc-50 text-black font-extrabold text-xs md:text-sm px-4 py-2 rounded-lg border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all flex items-center gap-1.5 cursor-pointer">
+        <button 
+          onClick={() => setIsProjectSettingsOpen(true)}
+          className="bg-white hover:bg-zinc-50 text-black font-extrabold text-xs md:text-sm px-4 py-2 rounded-lg border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all flex items-center gap-1.5 cursor-pointer"
+        >
           <Settings className="w-4 h-4 stroke-[2.5]" />
           <span>Project Settings</span>
         </button>
@@ -564,7 +707,7 @@ export default function ProjectDetailsPage() {
 
             <div>
               <h1 className="text-3xl sm:text-4xl md:text-5xl font-black uppercase tracking-tight flex items-center gap-2">
-                <span>E-Commerce Website</span>
+                <span>{projectDetail?.title || 'Project Workspace'}</span>
                 <span className="inline-block font-mono font-bold text-[#1E1B4B]/35 opacity-60 text-2xl md:text-3xl select-none">
                   \ \ \
                 </span>
@@ -576,7 +719,7 @@ export default function ProjectDetailsPage() {
                   ? "Manage and organize all your project notes in one place."
                   : activeTab === 'credentials'
                   ? "Manage all your project credentials and secure keys in one place."
-                  : "Build a fully functional e-commerce website with payment integration and admin dashboard."
+                  : projectDetail?.description || "Manage project tasks, notes, and credentials."
                 }
               </p>
             </div>
@@ -589,13 +732,18 @@ export default function ProjectDetailsPage() {
             <div className="bg-white border-3 border-black p-3.5 rounded-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] min-w-[220px]">
               <div className="flex items-center justify-between text-xs font-black mb-1.5">
                 <span className="text-zinc-600">Project Progress</span>
-                <span className="text-[#FF6B6B] text-sm">80%</span>
+                <span className="text-[#FF6B6B] text-sm">
+                  {allTasks.length > 0 ? Math.round((completedTasksState.length / allTasks.length) * 100) : 0}%
+                </span>
               </div>
               <div className="w-full h-2.5 bg-zinc-150 rounded-full border-2 border-black overflow-hidden relative mb-1.5">
-                <div className="h-full bg-[#FF6B6B] rounded-full border-r-2 border-black w-[80%]" />
+                <div 
+                  className="h-full bg-[#FF6B6B] rounded-full border-r-2 border-black" 
+                  style={{ width: `${allTasks.length > 0 ? Math.round((completedTasksState.length / allTasks.length) * 100) : 0}%` }}
+                />
               </div>
               <div className="text-[10px] font-bold text-zinc-500">
-                24 of 30 tasks completed
+                {completedTasksState.length} of {allTasks.length} tasks completed
               </div>
             </div>
 
@@ -606,7 +754,9 @@ export default function ProjectDetailsPage() {
               </div>
               <div>
                 <div className="text-[10px] font-black uppercase text-zinc-400">Due Date</div>
-                <div className="text-xs sm:text-sm font-black text-[#B91C1C]">Aug 30, 2025</div>
+                <div className="text-xs sm:text-sm font-black text-[#B91C1C]">
+                  {projectDetail?.dueDate || 'No Due Date'}
+                </div>
               </div>
             </div>
 
@@ -680,19 +830,7 @@ export default function ProjectDetailsPage() {
             <span>Notes</span>
           </button>
 
-          {/* Tab: Activity */}
-          <button 
-            onClick={() => setActiveTab('activity')}
-            className={cn(
-              "font-black text-xs sm:text-sm px-5 py-2.5 rounded-xl border-3 border-black flex items-center gap-2 cursor-pointer shrink-0 transition-all",
-              activeTab === 'activity'
-                ? "bg-[#FF6B6B] text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
-                : "bg-white hover:bg-zinc-50 text-black border-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
-            )}
-          >
-            <Activity className="w-4 h-4 stroke-[2.5]" />
-            <span>Activity</span>
-          </button>
+
         </div>
 
         {/* ========================================================================= */}
@@ -702,10 +840,10 @@ export default function ProjectDetailsPage() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-10">
             
             {/* KANBAN BOARD SECTION (9 Columns) */}
-            <div className="lg:col-span-9 grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+            <div className="lg:col-span-9 grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
               
               {/* COLUMN 1: TO DO */}
-              <div className="bg-white border-3 border-black rounded-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] overflow-hidden flex flex-col">
+              <div className="bg-white border-3 border-black rounded-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] overflow-hidden flex flex-col h-full">
                 <div className="bg-[#FF6B6B] border-b-3 border-black p-3.5 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <GripVertical className="w-4 h-4 text-black stroke-[2.5]" />
@@ -813,7 +951,7 @@ export default function ProjectDetailsPage() {
               </div>
 
               {/* COLUMN 2: IN PROGRESS */}
-              <div className="bg-white border-3 border-black rounded-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] overflow-hidden flex flex-col">
+              <div className="bg-white border-3 border-black rounded-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] overflow-hidden flex flex-col h-full">
                 <div className="bg-[#FFD93D] border-b-3 border-black p-3.5 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <GripVertical className="w-4 h-4 text-black stroke-[2.5]" />
@@ -921,7 +1059,7 @@ export default function ProjectDetailsPage() {
               </div>
 
               {/* COLUMN 3: COMPLETED */}
-              <div className="bg-white border-3 border-black rounded-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] overflow-hidden flex flex-col">
+              <div className="bg-white border-3 border-black rounded-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] overflow-hidden flex flex-col h-full">
                 <div className="bg-[#C4B5FD] border-b-3 border-black p-3.5 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <GripVertical className="w-4 h-4 text-black stroke-[2.5]" />
@@ -1054,259 +1192,14 @@ export default function ProjectDetailsPage() {
                 </div>
               </div>
 
-              {/* WIDGET 2: Activity Feed */}
-              <div className="bg-white border-3 border-black p-5 rounded-2xl shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] space-y-4">
-                <div className="flex items-center gap-2 border-b border-zinc-150 pb-3">
-                  <Activity className="w-5 h-5 text-black stroke-[2.5]" />
-                  <h3 className="font-black text-sm uppercase tracking-wide text-black">
-                    Activity Feed
-                  </h3>
-                </div>
 
-                <div className="space-y-3.5">
-                  {[
-                    { icon: CheckCircle2, iconBg: 'bg-[#DCFCE7] text-[#15803D]', text: 'Task Completed: Database Schema Design', time: '2h ago' },
-                    { icon: FileText, iconBg: 'bg-[#F3E8FF] text-[#7C3AED]', text: 'Note Added: Design Requirements', time: '5h ago' },
-                    { icon: Plus, iconBg: 'bg-[#E0F2FE] text-[#0369A1]', text: 'Task Created: Design Checkout Flow', time: '1d ago' },
-                    { icon: MessageSquare, iconBg: 'bg-[#FEF3C7] text-[#D97706]', text: 'Comment Added: User Authentication', time: '2d ago' },
-                  ].map((act, idx) => {
-                    const ActIcon = act.icon;
-                    return (
-                      <div key={idx} className="flex items-start justify-between gap-2 text-xs border-b border-zinc-100 pb-2.5 last:border-0 last:pb-0">
-                        <div className="flex items-start gap-2.5 min-w-0">
-                          <div className={cn("w-6 h-6 rounded-md border border-black flex items-center justify-center shrink-0 shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]", act.iconBg)}>
-                            <ActIcon className="w-3.5 h-3.5 stroke-[2.5]" />
-                          </div>
-                          <span className="font-bold text-zinc-700 text-[11px] leading-tight">
-                            {act.text}
-                          </span>
-                        </div>
-                        <span className="text-[10px] font-bold text-zinc-400 shrink-0">
-                          {act.time}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* WIDGET 3: Personal Quick Notes / Milestones */}
-              <div className="bg-[#FFFBEB] border-3 border-black p-5 rounded-2xl shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] space-y-4">
-                <div className="flex items-center gap-2 border-b border-black/10 pb-3">
-                  <Sparkles className="w-5 h-5 text-[#D97706] stroke-[2.5]" />
-                  <h3 className="font-black text-sm uppercase tracking-wide text-black">
-                    Personal Milestones
-                  </h3>
-                </div>
-
-                <div className="space-y-3 text-xs font-bold">
-                  <div className="bg-white border-2 border-black p-3 rounded-xl shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-start gap-2">
-                    <Zap className="w-4 h-4 text-[#D97706] stroke-[2.5] shrink-0 mt-0.5" />
-                    <div>
-                      <div className="font-black text-black">Complete Auth Flow</div>
-                      <div className="text-[10px] font-bold text-zinc-500">Target: Aug 28, 2025</div>
-                    </div>
-                  </div>
-
-                  <div className="bg-white border-2 border-black p-3 rounded-xl shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-start gap-2">
-                    <Lock className="w-4 h-4 text-[#B91C1C] stroke-[2.5] shrink-0 mt-0.5" />
-                    <div>
-                      <div className="font-black text-black">Audit API Keys & Secrets</div>
-                      <div className="text-[10px] font-bold text-zinc-500">Target: Aug 29, 2025</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
 
             </div>
 
           </div>
         )}
 
-        {/* ========================================================================= */}
-        {/* TAB CONTENT: ACTIVITY VIEW */}
-        {/* ========================================================================= */}
-        {activeTab === 'activity' && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start mb-10">
-            
-            {/* LEFT PANEL: FILTERS & SUMMARY (4 Columns) */}
-            <div className="lg:col-span-4 space-y-6">
-              
-              {/* Filter Activity Widget */}
-              <div className="bg-white border-3 border-black p-5 rounded-2xl shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] space-y-4">
-                <h3 className="font-black text-base text-black">Filter Activity</h3>
 
-                <div className="space-y-3">
-                  <button className="w-full bg-white text-black font-extrabold text-xs sm:text-sm px-4 py-2.5 rounded-xl border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center justify-between cursor-pointer hover:bg-zinc-50">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-zinc-600 stroke-[2.5]" />
-                      <span>All Time</span>
-                    </div>
-                    <ChevronDown className="w-4 h-4 stroke-[2.5]" />
-                  </button>
-
-                  <button className="w-full bg-white text-black font-extrabold text-xs sm:text-sm px-4 py-2.5 rounded-xl border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center justify-between cursor-pointer hover:bg-zinc-50">
-                    <div className="flex items-center gap-2">
-                      <SlidersHorizontal className="w-4 h-4 text-zinc-600 stroke-[2.5]" />
-                      <span>All Activity Types</span>
-                    </div>
-                    <ChevronDown className="w-4 h-4 stroke-[2.5]" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Activity Summary Widget */}
-              <div className="bg-white border-3 border-black p-5 rounded-2xl shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] space-y-4">
-                <h3 className="font-black text-base text-black">Activity Summary</h3>
-
-                <div className="space-y-2.5 text-xs font-bold">
-                  {[
-                    { icon: CheckSquare, iconBg: 'bg-[#E0F2FE] text-[#0369A1]', label: 'Tasks Created', count: 18 },
-                    { icon: CheckSquare, iconBg: 'bg-[#FEF3C7] text-[#D97706]', label: 'Tasks Updated', count: 27 },
-                    { icon: CheckCircle2, iconBg: 'bg-[#DCFCE7] text-[#15803D]', label: 'Tasks Completed', count: 14 },
-                    { icon: FileText, iconBg: 'bg-[#F3E8FF] text-[#7C3AED]', label: 'Notes Added', count: 11 },
-                    { icon: FileText, iconBg: 'bg-[#FFEDD5] text-[#C2410C]', label: 'Notes Updated', count: 7 },
-                    { icon: Lock, iconBg: 'bg-[#FFEAEA] text-[#B91C1C]', label: 'Credentials Added', count: 6 },
-                    { icon: Lock, iconBg: 'bg-[#E0F2FE] text-[#0369A1]', label: 'Credentials Updated', count: 3 },
-                  ].map((sum, idx) => {
-                    const SumIcon = sum.icon;
-                    return (
-                      <div key={idx} className="flex items-center justify-between">
-                        <div className="flex items-center gap-2.5">
-                          <div className={cn("w-5 h-5 rounded-md border border-black flex items-center justify-center text-xs shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]", sum.iconBg)}>
-                            <SumIcon className="w-3 h-3 stroke-[2.5]" />
-                          </div>
-                          <span className="text-zinc-700">{sum.label}</span>
-                        </div>
-                        <span className="font-black text-black">{sum.count}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Total Activities Box */}
-              <div className="bg-white border-2 border-black p-4 rounded-xl shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] space-y-1">
-                <div className="text-xs font-black uppercase text-zinc-500">Total Activities</div>
-                <div className="text-3xl font-black text-[#7C3AED]">86</div>
-                <div className="text-xs font-bold text-zinc-500">Across all modules</div>
-              </div>
-
-            </div>
-
-            {/* RIGHT PANEL: ACTIVITY TIMELINE FEED (8 Columns) */}
-            <div className="lg:col-span-8 bg-white border-3 border-black p-6 sm:p-8 rounded-2xl shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] space-y-6">
-              
-              {/* Header & Search */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-200 pb-4">
-                <h2 className="text-xl sm:text-2xl font-black text-black tracking-tight">
-                  Activity Feed
-                </h2>
-
-                <div className="relative w-full sm:w-64">
-                  <Search className="w-4 h-4 text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2 stroke-[2.5]" />
-                  <input 
-                    type="text"
-                    placeholder="Search activities..."
-                    className="w-full bg-white text-black font-bold text-xs sm:text-sm pl-10 pr-3 py-2 rounded-xl border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] focus:outline-none focus:ring-2 focus:ring-black placeholder:text-zinc-400"
-                  />
-                </div>
-              </div>
-
-              {/* Connected Action Timeline Container */}
-              <div className="relative pl-6 sm:pl-8 border-l-2 border-zinc-200 space-y-7 ml-3 my-4">
-                {activityTimelineData.map((act) => {
-                  const SubIcon = act.subIcon;
-                  return (
-                    <div key={act.id} className="relative group">
-                      
-                      {/* Action Sticker Icon Node on Line */}
-                      <div className={cn(
-                        "absolute -left-[37px] sm:-left-[45px] top-0 w-7 h-7 sm:w-8 sm:h-8 rounded-lg border-2 border-black flex items-center justify-center shadow-[1.5px_1.5px_0px_0px_rgba(0,0,0,1)] z-10",
-                        act.subIconBg
-                      )}>
-                        <SubIcon className="w-4 h-4 stroke-[2.5]" />
-                      </div>
-
-                      {/* Timeline Content */}
-                      <div className="space-y-1.5 pt-0.5">
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <div className="flex flex-wrap items-center gap-1.5 text-xs sm:text-sm font-bold text-zinc-800">
-                            <span className="font-black text-black">{act.actionTitle}</span>
-                            
-                            <span className={cn(
-                              "px-2.5 py-0.5 rounded-md text-[11px] font-black border border-black/20 shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] inline-block",
-                              act.badgeBg
-                            )}>
-                              {act.itemBadge}
-                            </span>
-
-                            {act.fromBadge && act.toBadge && (
-                              <>
-                                <span className="text-zinc-600">from</span>
-                                <span className="px-2 py-0.5 rounded-md text-[10px] font-black border border-black/20 bg-[#E0F2FE] text-[#0369A1]">
-                                  {act.fromBadge}
-                                </span>
-                                <span className="text-zinc-600">to</span>
-                                <span className="px-2 py-0.5 rounded-md text-[10px] font-black border border-black/20 bg-[#FEF3C7] text-[#D97706]">
-                                  {act.toBadge}
-                                </span>
-                              </>
-                            )}
-                          </div>
-
-                          <span className="text-[10px] sm:text-xs font-bold text-zinc-400 whitespace-nowrap">
-                            {act.timestamp}
-                          </span>
-                        </div>
-
-                        {/* Category Sublabel */}
-                        <div className="flex items-center gap-1.5 text-[11px] font-bold text-zinc-500">
-                          <SubIcon className="w-3.5 h-3.5 text-zinc-600 stroke-[2.5]" />
-                          <span>{act.subLabel}</span>
-                        </div>
-                      </div>
-
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Pagination Row */}
-              <div className="flex items-center justify-center gap-2 border-t border-zinc-200 pt-6">
-                <button className="w-8 h-8 bg-white border-2 border-black rounded-lg shadow-[1.5px_1.5px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center text-zinc-600 hover:text-black cursor-pointer">
-                  <ChevronLeft className="w-4 h-4 stroke-[2.5]" />
-                </button>
-
-                <button className="w-8 h-8 bg-[#FF6B6B] text-black font-black text-xs border-2 border-black rounded-lg shadow-[1.5px_1.5px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center cursor-pointer">
-                  1
-                </button>
-
-                <button className="w-8 h-8 bg-white text-black font-bold text-xs border-2 border-black rounded-lg shadow-[1.5px_1.5px_0px_0px_rgba(0,0,0,1)] hover:bg-zinc-50 flex items-center justify-center cursor-pointer">
-                  2
-                </button>
-
-                <button className="w-8 h-8 bg-white text-black font-bold text-xs border-2 border-black rounded-lg shadow-[1.5px_1.5px_0px_0px_rgba(0,0,0,1)] hover:bg-zinc-50 flex items-center justify-center cursor-pointer">
-                  3
-                </button>
-
-                <button className="w-8 h-8 bg-white text-black font-bold text-xs border-2 border-black rounded-lg shadow-[1.5px_1.5px_0px_0px_rgba(0,0,0,1)] hover:bg-zinc-50 flex items-center justify-center cursor-pointer">
-                  4
-                </button>
-
-                <button className="w-8 h-8 bg-white text-black font-bold text-xs border-2 border-black rounded-lg shadow-[1.5px_1.5px_0px_0px_rgba(0,0,0,1)] hover:bg-zinc-50 flex items-center justify-center cursor-pointer">
-                  5
-                </button>
-
-                <button className="w-8 h-8 bg-white border-2 border-black rounded-lg shadow-[1.5px_1.5px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center text-zinc-600 hover:text-black cursor-pointer">
-                  <ChevronRight className="w-4 h-4 stroke-[2.5]" />
-                </button>
-              </div>
-
-            </div>
-
-          </div>
-        )}
 
         {/* ========================================================================= */}
         {/* TAB CONTENT: NOTES VIEW */}
@@ -1405,7 +1298,10 @@ export default function ProjectDetailsPage() {
                     <span>Edit</span>
                   </button>
 
-                  <button className="bg-white hover:bg-red-50 text-[#B91C1C] font-extrabold text-xs px-3.5 py-2 rounded-lg border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all flex items-center gap-1.5 cursor-pointer">
+                  <button 
+                    onClick={() => handleDeleteNote(selectedNote.id)}
+                    className="bg-white hover:bg-red-50 text-[#B91C1C] font-extrabold text-xs px-3.5 py-2 rounded-lg border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all flex items-center gap-1.5 cursor-pointer"
+                  >
                     <Trash2 className="w-3.5 h-3.5 stroke-[2.5]" />
                     <span>Delete</span>
                   </button>
@@ -1447,6 +1343,14 @@ export default function ProjectDetailsPage() {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3">
+                  <button 
+                    onClick={() => setIsCredentialModalOpen(true)}
+                    className="bg-[#FFD93D] hover:bg-[#FACC15] text-black font-black text-xs sm:text-sm px-4 py-2.5 rounded-xl border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center gap-2 cursor-pointer transition-all"
+                  >
+                    <Plus className="w-4 h-4 stroke-[3]" />
+                    <span>Add Credential</span>
+                  </button>
+
                   <div className="relative w-full md:w-72">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-500">
                       <Search className="w-4 h-4 stroke-[2.5]" />
@@ -1531,7 +1435,7 @@ export default function ProjectDetailsPage() {
                         <td className="px-5 py-4 text-xs font-bold text-zinc-700 whitespace-nowrap">
                           {cred.addedOn}
                         </td>
-                        <td className="px-5 py-4 text-right">
+                        <td className="px-5 py-4 text-right space-x-2">
                           <button 
                             onClick={() => {
                               const allVals = cred.fields.map(f => `${f.name}: ${f.value}`).join('\n');
@@ -1541,6 +1445,15 @@ export default function ProjectDetailsPage() {
                             className="bg-white hover:bg-[#FFEAEA] text-black font-extrabold text-[10px] px-2.5 py-1.5 rounded-lg border-2 border-black shadow-[1.5px_1.5px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[0.5px] hover:translate-y-[0.5px] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] active:translate-x-[1.5px] active:translate-y-[1.5px] active:shadow-none transition-all cursor-pointer inline-flex items-center gap-1.5"
                           >
                             <span>Copy All</span>
+                          </button>
+
+                          <button 
+                            onClick={() => handleDeleteCredential(cred.id)}
+                            className="bg-white hover:bg-red-50 text-[#B91C1C] font-extrabold text-[10px] px-2.5 py-1.5 rounded-lg border-2 border-black shadow-[1.5px_1.5px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[0.5px] hover:translate-y-[0.5px] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] active:translate-x-[1.5px] active:translate-y-[1.5px] active:shadow-none transition-all cursor-pointer inline-flex items-center gap-1"
+                            title="Delete credential"
+                          >
+                            <Trash2 className="w-3 h-3 stroke-[2.5]" />
+                            <span>Delete</span>
                           </button>
                         </td>
                       </tr>
@@ -1608,6 +1521,28 @@ export default function ProjectDetailsPage() {
         onSubmit={handleUpdateTask}
         onDelete={handleDeleteTask}
       />
+
+      {projectDetail && (
+        <ProjectSettingsModal
+          isOpen={isProjectSettingsOpen}
+          onClose={() => setIsProjectSettingsOpen(false)}
+          project={{
+            id: projectDetail.id,
+            title: projectDetail.title,
+            description: projectDetail.description || '',
+            category: projectDetail.category || 'General',
+            status: (projectDetail.status as 'planning' | 'in-progress' | 'completed' | 'on-hold') || 'in-progress',
+            dueDate: projectDetail.dueDate || null,
+          }}
+          onProjectUpdated={(updatedProject) => {
+            setProjectDetail((prev) => prev ? { ...prev, ...updatedProject } : { id: updatedProject.id, title: updatedProject.title, description: updatedProject.description, category: updatedProject.category, status: updatedProject.status, dueDate: updatedProject.dueDate });
+            fetchProjectAndTasks();
+          }}
+          onProjectDeleted={() => {
+            router.push('/projects');
+          }}
+        />
+      )}
     </div>
   );
 }

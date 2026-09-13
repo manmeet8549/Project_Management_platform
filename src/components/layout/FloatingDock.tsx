@@ -16,15 +16,18 @@ import {
   FolderKanban, 
   Bell, 
   Settings,
-  Sparkles
+  Sparkles,
+  LogOut
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AiCopilotWindow } from '@/components/ai/AiCopilotWindow';
+import { useAuth } from '@/components/auth/AuthGuard';
 
 export function FloatingDock() {
   const pathname = usePathname();
   const mouseX = useMotionValue(Infinity);
   const [isAiOpen, setIsAiOpen] = useState(false);
+  const { user, logout } = useAuth();
 
   // Do not render the floating dock or AI window on landing page or auth routes
   if (pathname === '/' || pathname.startsWith('/auth') || pathname.startsWith('/login') || pathname.startsWith('/signup')) return null;
@@ -93,6 +96,17 @@ export function FloatingDock() {
             bgColor="bg-[#7C3AED]"
             textColor="text-white"
             isActive={isAiOpen}
+          />
+
+          {/* Logout Button */}
+          <IconContainer 
+            mouseX={mouseX}
+            title={`Logout (${user?.name || 'User'})`}
+            onClick={logout}
+            icon={LogOut}
+            bgColor="bg-[#FF6B6B]"
+            textColor="text-white"
+            isActive={false}
           />
         </motion.nav>
       </div>

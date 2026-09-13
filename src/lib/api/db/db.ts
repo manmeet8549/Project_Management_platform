@@ -53,6 +53,40 @@ export type TaskWithRelations = TaskRecord & {
   assignee?: { id: string; name: string; email: string } | null;
 };
 
+export interface CredentialField {
+  name: string;
+  value: string;
+}
+
+export interface CredentialRecord {
+  id: string;
+  projectId?: string;
+  title: string;
+  category: string;
+  categoryBg?: string;
+  addedOn: string;
+  fields: CredentialField[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface NoteSection {
+  heading: string;
+  items: string[];
+}
+
+export interface NoteRecord {
+  id: string;
+  projectId?: string;
+  title: string;
+  excerpt: string;
+  date: string;
+  updated: string;
+  sections: NoteSection[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 type RoleEnum = 'ADMIN' | 'MANAGER' | 'MEMBER';
 type ProjectStatusEnum = 'planning' | 'in_progress' | 'completed' | 'on_hold';
 type TaskStatusEnum = 'todo' | 'in_progress' | 'done' | 'completed';
@@ -130,87 +164,115 @@ class DatabaseStore {
       createdAt: '2026-08-01T10:00:00.000Z',
       updatedAt: '2026-08-01T10:00:00.000Z',
     },
+  ];
+
+  private memoryProjects: ProjectRecord[] = [];
+
+  private memoryTasks: TaskRecord[] = [];
+
+  private memoryCredentials: CredentialRecord[] = [
     {
-      id: 'usr-2',
-      name: 'Sarah Connor',
-      email: 'sarah@example.com',
-      passwordHash: defaultPasswordHash,
-      role: 'MANAGER',
-      createdAt: '2026-08-05T12:00:00.000Z',
-      updatedAt: '2026-08-05T12:00:00.000Z',
+      id: 'c-1',
+      title: 'Supabase Database & Storage',
+      category: 'Database & Auth',
+      categoryBg: 'bg-[#DCFCE7] text-[#15803D]',
+      addedOn: 'May 20, 2025',
+      fields: [
+        { name: 'Project URL', value: 'https://abcxyz.supabase.co' },
+        { name: 'Anon Key', value: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSJ9...' },
+        { name: 'Service Role Key', value: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1zZXJ2aWNlIn0...' },
+        { name: 'Database Password', value: 'SuperSecretDBPass2025!' },
+      ],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     },
     {
-      id: 'usr-3',
-      name: 'Alex Rivera',
-      email: 'alex@example.com',
-      passwordHash: defaultPasswordHash,
-      role: 'MEMBER',
-      createdAt: '2026-08-10T14:30:00.000Z',
-      updatedAt: '2026-08-10T14:30:00.000Z',
+      id: 'c-2',
+      title: 'Stripe Payment Gateway',
+      category: 'Payment API',
+      categoryBg: 'bg-[#F3E8FF] text-[#7C3AED]',
+      addedOn: 'May 18, 2025',
+      fields: [
+        { name: 'Publishable Key', value: 'pk_test_51MzXYZ1234567890abcdef...' },
+        { name: 'Secret Key', value: 'sk_test_51MzXYZ9876543210fedcba...' },
+        { name: 'Webhook Signing Secret', value: 'whsec_9876543210abcdef...' },
+      ],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
+    {
+      id: 'c-3',
+      title: 'NVIDIA AI NIM Engine',
+      category: 'AI Model Service',
+      categoryBg: 'bg-[#FFEAEA] text-[#B91C1C]',
+      addedOn: 'May 22, 2025',
+      fields: [
+        { name: 'API Key', value: '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' },
+        { name: 'Endpoint URL', value: 'https://integrate.api.nvidia.com/v1/chat/completions' },
+        { name: 'Model Name', value: 'meta/llama-3.2-11b-vision-instruct' },
+      ],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     },
   ];
 
-  private memoryProjects: ProjectRecord[] = [
+  private memoryNotes: NoteRecord[] = [
     {
-      id: 'proj-1',
-      title: 'E-Commerce Platform Redesign',
-      description: 'Modernizing frontend architecture and improving core checkout metrics.',
-      category: 'Design & Dev',
-      status: 'in-progress',
-      dueDate: '2026-10-15',
-      ownerId: 'usr-1',
-      createdAt: '2026-08-15T09:00:00.000Z',
-      updatedAt: '2026-08-20T11:00:00.000Z',
+      id: 'n-1',
+      title: 'Project Kickoff & Requirements',
+      excerpt: 'Key alignment points from the initial stakeholder kickoff meeting...',
+      date: 'May 20, 2025',
+      updated: 'Updated 2 days ago',
+      sections: [
+        {
+          heading: '1. Key Objectives',
+          items: [
+            'Aligned on neobrutalist design system with high contrast borders.',
+            'Target launch date confirmed for August 30, 2025.',
+            'Weekly milestone checks scheduled for every Tuesday.'
+          ]
+        }
+      ],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     },
     {
-      id: 'proj-2',
-      title: 'Mobile App API Integration',
-      description: 'REST API backend endpoints connecting iOS & Android apps to database.',
-      category: 'Backend',
-      status: 'planning',
-      dueDate: '2026-11-30',
-      ownerId: 'usr-2',
-      createdAt: '2026-08-18T14:00:00.000Z',
-      updatedAt: '2026-08-18T14:00:00.000Z',
-    },
-  ];
-
-  private memoryTasks: TaskRecord[] = [
-    {
-      id: 'tsk-1',
-      title: 'Design Database Schema for User Auth',
-      description: 'Define PostgreSQL/SQLite tables for user accounts, roles, and refresh tokens.',
-      status: 'done',
-      priority: 'high',
-      projectId: 'proj-1',
-      assigneeId: 'usr-1',
-      dueDate: '2026-09-01',
-      createdAt: '2026-08-20T09:30:00.000Z',
-      updatedAt: '2026-09-01T16:00:00.000Z',
+      id: 'n-2',
+      title: 'Database Schema & Architecture Ideas',
+      excerpt: 'Initial thoughts on how to structure the database and user tables...',
+      date: 'May 18, 2025',
+      updated: 'Updated 4 days ago',
+      sections: [
+        {
+          heading: '1. Core Tables',
+          items: [
+            'users (id, email, name, role, password_hash, created_at)',
+            'projects (id, title, description, category, status, due_date)',
+            'tasks (id, project_id, title, priority, status, assignee_id)'
+          ]
+        }
+      ],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     },
     {
-      id: 'tsk-2',
-      title: 'Implement JWT Token Authentication Middleware',
-      description: 'Add verification logic to ensure protected routes inspect Bearer headers.',
-      status: 'in-progress',
-      priority: 'urgent',
-      projectId: 'proj-1',
-      assigneeId: 'usr-3',
-      dueDate: '2026-09-10',
-      createdAt: '2026-08-22T10:00:00.000Z',
-      updatedAt: '2026-08-22T10:00:00.000Z',
-    },
-    {
-      id: 'tsk-3',
-      title: 'Setup OpenAPI Swagger Documentation',
-      description: 'Document endpoints, request bodies, and error response schemas.',
-      status: 'todo',
-      priority: 'medium',
-      projectId: 'proj-2',
-      assigneeId: 'usr-2',
-      dueDate: '2026-09-20',
-      createdAt: '2026-08-25T15:00:00.000Z',
-      updatedAt: '2026-08-25T15:00:00.000Z',
+      id: 'n-3',
+      title: 'Deployment & Launch Checklist',
+      excerpt: 'Steps to deploy the application to production environment...',
+      date: 'May 10, 2025',
+      updated: 'Updated 2 weeks ago',
+      sections: [
+        {
+          heading: '1. Checklist Items',
+          items: [
+            'Configure environment variables on Vercel.',
+            'Run automated TypeScript and lint verification.',
+            'Verify SSL certificates and custom domain DNS.'
+          ]
+        }
+      ],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     },
   ];
 
@@ -564,7 +626,7 @@ class DatabaseStore {
       }
     }
 
-    const project = this.memoryProjects.find(p => p.id === id) || this.memoryProjects[0];
+    const project = this.memoryProjects.find(p => p.id === id);
     if (!project) return null;
     const projectTasks = this.memoryTasks.filter(t => t.projectId === id);
     const taskStats = {
@@ -922,7 +984,7 @@ class DatabaseStore {
       }
     }
 
-    const task = this.memoryTasks.find(t => t.id === id) || this.memoryTasks[0];
+    const task = this.memoryTasks.find(t => t.id === id);
     if (!task) return null;
     const project = this.memoryProjects.find(p => p.id === task.projectId);
     const assigneeRaw = task.assigneeId ? this.memoryUsers.find(u => u.id === task.assigneeId) : null;
@@ -1236,6 +1298,142 @@ class DatabaseStore {
     const index = this.memoryTasks.findIndex(t => t.id === id);
     if (index === -1) return false;
     this.memoryTasks.splice(index, 1);
+    return true;
+  }
+
+  // --- CREDENTIAL METHODS ---
+  async getAllCredentials(query?: { projectId?: string; category?: string; search?: string }): Promise<CredentialRecord[]> {
+    const cacheKey = `credentials:list:${query?.projectId || ''}:${query?.category || ''}:${query?.search || ''}`;
+    const cached = apiCache.get<CredentialRecord[]>(cacheKey);
+    if (cached) return cached;
+
+    let res = [...this.memoryCredentials];
+    if (query?.projectId) {
+      res = res.filter(c => !c.projectId || c.projectId === query.projectId);
+    }
+    if (query?.category) {
+      res = res.filter(c => c.category.toLowerCase().includes(query.category!.toLowerCase()));
+    }
+    if (query?.search) {
+      const q = query.search.toLowerCase();
+      res = res.filter(c => c.title.toLowerCase().includes(q) || c.category.toLowerCase().includes(q));
+    }
+    apiCache.set(cacheKey, res, 10, ['credentials']);
+    return res;
+  }
+
+  async getCredentialById(id: string): Promise<CredentialRecord | null> {
+    const found = this.memoryCredentials.find(c => c.id === id);
+    return found || null;
+  }
+
+  async createCredential(data: Partial<CredentialRecord>): Promise<CredentialRecord> {
+    apiCache.invalidateTag('credentials');
+    const newCred: CredentialRecord = {
+      id: `c-${Date.now()}`,
+      projectId: data.projectId,
+      title: data.title || 'Untitled Credential',
+      category: data.category || 'API Key & Secret',
+      categoryBg: data.categoryBg || 'bg-[#DCFCE7] text-[#15803D]',
+      addedOn: data.addedOn || new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      fields: data.fields || [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    this.memoryCredentials.unshift(newCred);
+    return newCred;
+  }
+
+  async updateCredential(id: string, data: Partial<CredentialRecord>): Promise<CredentialRecord | null> {
+    apiCache.invalidateTag('credentials');
+    const index = this.memoryCredentials.findIndex(c => c.id === id);
+    if (index === -1) return null;
+
+    const existing = this.memoryCredentials[index];
+    const updated: CredentialRecord = {
+      ...existing,
+      ...data,
+      fields: data.fields || existing.fields,
+      updatedAt: new Date().toISOString(),
+    };
+    this.memoryCredentials[index] = updated;
+    return updated;
+  }
+
+  async deleteCredential(id: string): Promise<boolean> {
+    apiCache.invalidateTag('credentials');
+    const index = this.memoryCredentials.findIndex(c => c.id === id);
+    if (index === -1) return false;
+    this.memoryCredentials.splice(index, 1);
+    return true;
+  }
+
+  // --- NOTE METHODS ---
+  async getAllNotes(query?: { projectId?: string; search?: string }): Promise<NoteRecord[]> {
+    const cacheKey = `notes:list:${query?.projectId || ''}:${query?.search || ''}`;
+    const cached = apiCache.get<NoteRecord[]>(cacheKey);
+    if (cached) return cached;
+
+    let res = [...this.memoryNotes];
+    if (query?.projectId) {
+      res = res.filter(n => !n.projectId || n.projectId === query.projectId);
+    }
+    if (query?.search) {
+      const q = query.search.toLowerCase();
+      res = res.filter(n => n.title.toLowerCase().includes(q) || n.excerpt.toLowerCase().includes(q));
+    }
+    apiCache.set(cacheKey, res, 10, ['notes']);
+    return res;
+  }
+
+  async getNoteById(id: string): Promise<NoteRecord | null> {
+    const found = this.memoryNotes.find(n => n.id === id);
+    return found || null;
+  }
+
+  async createNote(data: Partial<NoteRecord>): Promise<NoteRecord> {
+    apiCache.invalidateTag('notes');
+    const newNote: NoteRecord = {
+      id: `n-${Date.now()}`,
+      projectId: data.projectId,
+      title: data.title || 'Untitled Note',
+      excerpt: data.excerpt || 'New project note created.',
+      date: data.date || new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      updated: 'Just now',
+      sections: data.sections || [
+        {
+          heading: '1. Note Content',
+          items: [data.excerpt || 'Project note details and specifications.'],
+        },
+      ],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    this.memoryNotes.unshift(newNote);
+    return newNote;
+  }
+
+  async updateNote(id: string, data: Partial<NoteRecord>): Promise<NoteRecord | null> {
+    apiCache.invalidateTag('notes');
+    const index = this.memoryNotes.findIndex(n => n.id === id);
+    if (index === -1) return null;
+
+    const existing = this.memoryNotes[index];
+    const updated: NoteRecord = {
+      ...existing,
+      ...data,
+      updated: 'Just now',
+      updatedAt: new Date().toISOString(),
+    };
+    this.memoryNotes[index] = updated;
+    return updated;
+  }
+
+  async deleteNote(id: string): Promise<boolean> {
+    apiCache.invalidateTag('notes');
+    const index = this.memoryNotes.findIndex(n => n.id === id);
+    if (index === -1) return false;
+    this.memoryNotes.splice(index, 1);
     return true;
   }
 }

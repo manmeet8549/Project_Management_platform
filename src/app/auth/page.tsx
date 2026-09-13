@@ -14,25 +14,61 @@ import {
   CheckSquare,
   Folder,
   Calendar,
-  BarChart2
+  BarChart2,
+  Loader2,
+  AlertCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/components/auth/AuthGuard';
 
 function AuthFormContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialMode = searchParams.get('mode') === 'signup' ? 'signup' : 'signin';
 
+  const { login } = useAuth();
   const [mode, setMode] = useState<'signin' | 'signup'>(initialMode);
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [name, setName] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [rememberMe, setRememberMe] = useState<boolean>(true);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    router.push('/dashboard');
+    setError(null);
+    setIsSubmitting(true);
+
+    try {
+      const endpoint = mode === 'signin' ? '/api/v1/users/login' : '/api/v1/users/register';
+      const body = mode === 'signin' 
+        ? { email, password } 
+        : { name, email, password, role: 'MEMBER' };
+
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+      const resData = await res.json();
+      setIsSubmitting(false);
+
+      if (!res.ok || !resData.success) {
+        const msg = resData.error?.message || resData.message || (mode === 'signin' ? 'Failed to sign in. Please check your credentials.' : 'Registration failed.');
+        setError(msg);
+        return;
+      }
+
+      const { user: loggedUser, token } = resData.data;
+      login(token, loggedUser);
+    } catch (err) {
+      console.error('Auth error:', err);
+      setIsSubmitting(false);
+      setError('A network error occurred. Please try again.');
+    }
   };
 
   return (
@@ -207,6 +243,14 @@ function AuthFormContent() {
             {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-3.5">
               
+              {/* Error Banner */}
+              {error && (
+                <div className="bg-[#FFEAEA] border-2 border-black p-3 rounded-xl shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center gap-2.5 text-xs font-bold text-[#B91C1C]">
+                  <AlertCircle className="w-4 h-4 text-[#B91C1C] shrink-0 stroke-[2.5]" />
+                  <span>{error}</span>
+                </div>
+              )}
+
               {/* Google SSO Button */}
               <button
                 type="button"
@@ -317,9 +361,17 @@ function AuthFormContent() {
               <div className="pt-1">
                 <button
                   type="submit"
-                  className="w-full bg-[#FF6B6B] hover:bg-[#FF5252] text-white font-extrabold text-xs sm:text-sm py-3 rounded-xl border-3 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all cursor-pointer"
+                  disabled={isSubmitting}
+                  className="w-full bg-[#FF6B6B] hover:bg-[#FF5252] text-white font-extrabold text-xs sm:text-sm py-3 rounded-xl border-3 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-75"
                 >
-                  {mode === 'signin' ? 'Sign In' : 'Create Account'}
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin text-white" />
+                      <span>{mode === 'signin' ? 'Signing in...' : 'Creating account...'}</span>
+                    </>
+                  ) : (
+                    <span>{mode === 'signin' ? 'Sign In' : 'Create Account'}</span>
+                  )}
                 </button>
               </div>
 

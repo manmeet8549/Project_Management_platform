@@ -51,7 +51,7 @@ export interface JwtUserPayload {
 }
 
 export function generateJwtToken(payload: JwtUserPayload): string {
-  return jwt.sign(payload, env.JWT_SECRET, { expiresIn: '24h' });
+  return jwt.sign(payload, env.JWT_SECRET, { expiresIn: (env.JWT_EXPIRES_IN || '7d') as jwt.SignOptions['expiresIn'] });
 }
 
 export function verifyAuthToken(req: NextRequest): JwtUserPayload {

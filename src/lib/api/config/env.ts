@@ -8,7 +8,7 @@ const envSchema = z.object({
   NEXT_PUBLIC_SUPABASE_URL: z.string().optional().default('https://ceicslawfqwpuzwdkvor.supabase.co'),
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().optional().default(''),
   JWT_SECRET: z.string().default('super-secret-jwt-key-replace-in-production-12345'),
-  JWT_EXPIRES_IN: z.string().default('24h'),
+  JWT_EXPIRES_IN: z.string().default('7d'),
   CORS_ALLOWED_ORIGINS: z.string().default('*'),
 });
 

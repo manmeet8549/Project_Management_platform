@@ -63,8 +63,8 @@ export function NewCredentialModal({ isOpen, onClose, onSubmit }: NewCredentialM
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-[#FAF8F5] border-3 border-black rounded-2xl w-full max-w-lg shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] overflow-hidden flex flex-col font-sans max-h-[90vh]">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4 pb-32 sm:pb-36 pt-4">
+      <div className="bg-[#FAF8F5] border-3 border-black rounded-2xl w-full max-w-lg shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] overflow-hidden flex flex-col font-sans max-h-[calc(100vh-10rem)]">
         
         {/* Header */}
         <div className="bg-[#FF6B6B] border-b-3 border-black p-4 text-black flex items-center justify-between">

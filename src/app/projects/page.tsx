@@ -12,21 +12,26 @@ import {
   Smartphone, 
   Megaphone, 
   PieChart, 
-  BookOpen, 
   Calendar, 
   Clock, 
   LayoutGrid, 
   List, 
   ClipboardList, 
   Sparkles, 
-  ChevronDown 
+  ChevronDown,
+  Settings
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { NewProjectModal } from '@/components/modals/NewProjectModal';
+import { ProjectSettingsModal } from '@/components/modals/ProjectSettingsModal';
+import { fetchWithCache, invalidateClientCache } from '@/lib/client/clientCache';
 
 interface ProjectCardData {
   id: string;
   title: string;
+  description: string;
+  category: string;
+  rawStatus: 'planning' | 'in-progress' | 'completed' | 'on-hold';
   categoryIcon: React.ComponentType<{ className?: string }>;
   iconBg: string;
   status: 'In Progress' | 'Planning' | 'On Hold' | 'Completed';
@@ -39,95 +44,23 @@ interface ProjectCardData {
   updatedTime: string;
 }
 
-const initialProjectsData: ProjectCardData[] = [
-  {
-    id: '1',
-    title: 'E-Commerce Website',
-    categoryIcon: ShoppingCart,
-    iconBg: 'bg-[#FF6B6B]',
-    status: 'In Progress',
-    statusBg: 'bg-[#FFEAEA] text-[#B91C1C]',
-    percentage: 80,
-    progressColor: 'bg-[#FF6B6B]',
-    completedTasks: 24,
-    totalTasks: 30,
-    dueDate: 'Aug 30, 2025',
-    updatedTime: '2h ago',
-  },
-  {
-    id: '2',
-    title: 'Portfolio Website',
-    categoryIcon: Monitor,
-    iconBg: 'bg-[#FFD93D]',
-    status: 'In Progress',
-    statusBg: 'bg-[#FFFBEB] text-[#D97706]',
-    percentage: 40,
-    progressColor: 'bg-[#FFD93D]',
-    completedTasks: 8,
-    totalTasks: 20,
-    dueDate: 'Sep 10, 2025',
-    updatedTime: '5h ago',
-  },
-  {
-    id: '3',
-    title: 'Mobile App Development',
-    categoryIcon: Smartphone,
-    iconBg: 'bg-[#C4B5FD]',
-    status: 'Planning',
-    statusBg: 'bg-[#F3E8FF] text-[#7C3AED]',
-    percentage: 25,
-    progressColor: 'bg-[#C4B5FD]',
-    completedTasks: 5,
-    totalTasks: 20,
-    dueDate: 'Sep 25, 2025',
-    updatedTime: '1d ago',
-  },
-  {
-    id: '4',
-    title: 'Marketing Campaign',
-    categoryIcon: Megaphone,
-    iconBg: 'bg-[#FFD93D]',
-    status: 'In Progress',
-    statusBg: 'bg-[#FFFBEB] text-[#D97706]',
-    percentage: 60,
-    progressColor: 'bg-[#FFD93D]',
-    completedTasks: 12,
-    totalTasks: 20,
-    dueDate: 'Aug 28, 2025',
-    updatedTime: '3h ago',
-  },
-  {
-    id: '5',
-    title: 'SaaS Product Dashboard',
-    categoryIcon: PieChart,
-    iconBg: 'bg-[#C4B5FD]',
-    status: 'In Progress',
-    statusBg: 'bg-[#F3E8FF] text-[#7C3AED]',
-    percentage: 70,
-    progressColor: 'bg-[#C4B5FD]',
-    completedTasks: 21,
-    totalTasks: 30,
-    dueDate: 'Sep 15, 2025',
-    updatedTime: '6h ago',
-  },
-  {
-    id: '6',
-    title: 'Learning Management System',
-    categoryIcon: BookOpen,
-    iconBg: 'bg-[#FF6B6B]',
-    status: 'On Hold',
-    statusBg: 'bg-[#FFEAEA] text-[#B91C1C]',
-    percentage: 10,
-    progressColor: 'bg-[#FF6B6B]',
-    completedTasks: 2,
-    totalTasks: 20,
-    dueDate: 'Oct 05, 2025',
-    updatedTime: '2d ago',
-  },
-];
+interface RawProjectApiItem {
+  id: string;
+  title: string;
+  description?: string;
+  category: string;
+  status?: string;
+  dueDate?: string | null;
+}
+
+interface RawTaskApiItem {
+  id: string;
+  projectId: string;
+  status?: string;
+}
 
 export default function ProjectsPage() {
-  const [projects, setProjects] = useState<ProjectCardData[]>(initialProjectsData);
+  const [projects, setProjects] = useState<ProjectCardData[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'All' | 'In Progress' | 'Planning' | 'On Hold' | 'Completed'>('All');
   const [sortFilter, setSortFilter] = useState<'Recent' | 'Title' | 'Percentage'>('Recent');
@@ -136,43 +69,114 @@ export default function ProjectsPage() {
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
   const [showSortDropdown, setShowSortDropdown] = useState(false);
 
-  const handleAddProject = (newProj: { title: string; dueDate: string; description: string; category: string }) => {
-    const formattedDate = new Date(newProj.dueDate).toLocaleDateString('en-US', {
-      month: 'short',
-      day: '2-digit',
-      year: 'numeric'
-    });
+  const [selectedSettingsProject, setSelectedSettingsProject] = useState<ProjectCardData | null>(null);
 
-    const categoryIcons: Record<string, React.ComponentType<{ className?: string }>> = {
-      'E-Commerce': ShoppingCart,
-      'SaaS Platform': PieChart,
-      'Mobile App': Smartphone,
-      'Marketing': Megaphone
+  const fetchProjectsData = React.useCallback(async (forceRefresh = false) => {
+    try {
+      let rawProjects: RawProjectApiItem[] = [];
+      let rawTasks: RawTaskApiItem[] = [];
+
+      await Promise.all([
+        fetchWithCache<RawProjectApiItem[]>('/api/v1/projects', 'projects_list', (data) => {
+          rawProjects = data;
+        }, { forceRefresh }),
+        fetchWithCache<RawTaskApiItem[]>('/api/v1/tasks', 'tasks_list', (data) => {
+          rawTasks = data;
+        }, { forceRefresh }),
+      ]);
+
+      const categoryIcons: Record<string, React.ComponentType<{ className?: string }>> = {
+        'E-Commerce': ShoppingCart,
+        'SaaS Platform': PieChart,
+        'Mobile App': Smartphone,
+        'Marketing': Megaphone,
+        'Backend': Monitor,
+        'Design & Dev': Monitor,
+      };
+
+      const categoryBgs: Record<string, string> = {
+        'E-Commerce': 'bg-[#FF6B6B]',
+        'SaaS Platform': 'bg-[#FFD93D]',
+        'Mobile App': 'bg-[#C4B5FD]',
+        'Marketing': 'bg-[#FFD93D]',
+        'Backend': 'bg-[#C4B5FD]',
+      };
+
+      const formattedProjects: ProjectCardData[] = rawProjects.map((p: RawProjectApiItem) => {
+        const projTasks = rawTasks.filter((t: RawTaskApiItem) => t.projectId === p.id);
+        const completedCount = projTasks.filter((t: RawTaskApiItem) => t.status === 'done' || t.status === 'completed').length;
+        const totalTasksCount = projTasks.length;
+        const pct = totalTasksCount > 0 ? Math.round((completedCount / totalTasksCount) * 100) : 0;
+
+        const rawStatus = p.status === 'in_progress' ? 'In Progress' : p.status === 'on_hold' ? 'On Hold' : p.status === 'completed' ? 'Completed' : 'Planning';
+        const statusBg = rawStatus === 'Completed' ? 'bg-[#DCFCE7] text-[#15803D]' : rawStatus === 'In Progress' ? 'bg-[#FFEAEA] text-[#B91C1C]' : rawStatus === 'On Hold' ? 'bg-[#FFFBEB] text-[#D97706]' : 'bg-[#F3E8FF] text-[#7C3AED]';
+
+        return {
+          id: p.id,
+          title: p.title,
+          description: p.description || '',
+          category: p.category || 'General',
+          rawStatus: (p.status as 'planning' | 'in-progress' | 'completed' | 'on-hold') || 'in-progress',
+          categoryIcon: categoryIcons[p.category] || ShoppingCart,
+          iconBg: categoryBgs[p.category] || 'bg-[#FF6B6B]',
+          status: rawStatus as ProjectCardData['status'],
+          statusBg,
+          percentage: pct,
+          progressColor: pct > 75 ? 'bg-[#16A34A]' : pct > 40 ? 'bg-[#FFD93D]' : 'bg-[#FF6B6B]',
+          completedTasks: completedCount,
+          totalTasks: totalTasksCount,
+          dueDate: p.dueDate || 'No Due Date',
+          updatedTime: 'Recently',
+        };
+      });
+
+      setProjects(formattedProjects);
+    } catch (err) {
+      console.error('Failed to load projects from DB:', err);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    fetchProjectsData();
+
+    const handleUpdate = () => fetchProjectsData(true);
+    window.addEventListener('projectsUpdated', handleUpdate);
+    window.addEventListener('tasksUpdated', handleUpdate);
+    window.addEventListener('taskUpdated', handleUpdate);
+    return () => {
+      window.removeEventListener('projectsUpdated', handleUpdate);
+      window.removeEventListener('tasksUpdated', handleUpdate);
+      window.removeEventListener('taskUpdated', handleUpdate);
     };
+  }, [fetchProjectsData]);
 
-    const categoryBgs: Record<string, string> = {
-      'E-Commerce': 'bg-[#FF6B6B]',
-      'SaaS Platform': 'bg-[#FFD93D]',
-      'Mobile App': 'bg-[#C4B5FD]',
-      'Marketing': 'bg-[#FFD93D]'
-    };
+  const handleAddProject = async (newProj: { title: string; dueDate: string; description: string; category: string }) => {
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
 
-    const projectToAdd: ProjectCardData = {
-      id: (projects.length + 1).toString(),
-      title: newProj.title,
-      categoryIcon: categoryIcons[newProj.category] || ShoppingCart,
-      iconBg: categoryBgs[newProj.category] || 'bg-[#FF6B6B]',
-      status: 'Planning',
-      statusBg: 'bg-[#F3E8FF] text-[#7C3AED]',
-      percentage: 0,
-      progressColor: 'bg-[#C4B5FD]',
-      completedTasks: 0,
-      totalTasks: 10,
-      dueDate: formattedDate,
-      updatedTime: 'Just now',
-    };
+      const res = await fetch('/api/v1/projects', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          title: newProj.title,
+          description: newProj.description,
+          category: newProj.category,
+          dueDate: newProj.dueDate || null,
+          status: 'planning',
+        }),
+      });
 
-    setProjects([projectToAdd, ...projects]);
+      const resData = await res.json();
+      if (resData.success) {
+        invalidateClientCache(['projects_list', 'dashboard_projects']);
+        window.dispatchEvent(new Event('projectsUpdated'));
+        fetchProjectsData(true);
+      }
+    } catch (err) {
+      console.error('Failed to save project:', err);
+    }
   };
 
   // Filter Projects list
@@ -344,7 +348,24 @@ export default function ProjectsPage() {
         </div>
 
         {/* PROJECTS LISTING RENDERING */}
-        {viewMode === 'grid' ? (
+        {filteredProjects.length === 0 ? (
+          <div className="bg-white border-3 border-black p-8 sm:p-12 rounded-2xl shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] text-center max-w-xl mx-auto my-8">
+            <div className="w-16 h-16 rounded-2xl bg-[#FFD93D] border-3 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] mx-auto flex items-center justify-center mb-4">
+              <ShoppingCart className="w-8 h-8 text-black stroke-[2.5]" />
+            </div>
+            <h3 className="text-xl font-black text-black uppercase tracking-wider mb-2">No Projects Found</h3>
+            <p className="text-xs font-bold text-zinc-500 mb-6">
+              There are no projects saved in the database matching your query. Create a new project or refine ideas using AI Copilot!
+            </p>
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="bg-[#FF6B6B] hover:bg-[#FF5252] text-black font-black text-xs sm:text-sm px-6 py-3 rounded-xl border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all cursor-pointer inline-flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4 stroke-[3]" />
+              <span>Create First Project</span>
+            </button>
+          </div>
+        ) : viewMode === 'grid' ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-10">
             {filteredProjects.map((project) => {
               const CatIcon = project.categoryIcon;
@@ -362,10 +383,21 @@ export default function ProjectsPage() {
                         <CatIcon className="w-6 h-6 sm:w-7 sm:h-7 stroke-[2.5]" />
                       </div>
 
-                      <div className="flex-grow min-w-0 pt-0.5">
+                      <div className="flex-grow min-w-0 pt-0.5 flex items-start justify-between">
                         <h3 className="font-black text-lg sm:text-xl text-black leading-tight tracking-tight">
                           {project.title}
                         </h3>
+                        <button 
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setSelectedSettingsProject(project);
+                          }}
+                          className="w-7 h-7 bg-white hover:bg-zinc-100 text-black rounded-lg border-2 border-black flex items-center justify-center cursor-pointer shadow-[1.5px_1.5px_0px_0px_rgba(0,0,0,1)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all ml-2 shrink-0"
+                          title="Project Settings"
+                        >
+                          <Settings className="w-3.5 h-3.5 stroke-[2.5]" />
+                        </button>
                       </div>
                     </div>
 
@@ -523,6 +555,28 @@ export default function ProjectsPage() {
         onSubmit={handleAddProject}
       />
 
+      {/* Project Settings Modal */}
+      {selectedSettingsProject && (
+        <ProjectSettingsModal
+          isOpen={!!selectedSettingsProject}
+          onClose={() => setSelectedSettingsProject(null)}
+          project={{
+            id: selectedSettingsProject.id,
+            title: selectedSettingsProject.title,
+            description: selectedSettingsProject.description || '',
+            category: selectedSettingsProject.category || 'General',
+            status: (selectedSettingsProject.rawStatus || 'in-progress'),
+            dueDate: selectedSettingsProject.dueDate === 'No Due Date' ? null : selectedSettingsProject.dueDate,
+          }}
+          onProjectUpdated={() => {
+            fetchProjectsData();
+          }}
+          onProjectDeleted={() => {
+            setSelectedSettingsProject(null);
+            fetchProjectsData();
+          }}
+        />
+      )}
     </div>
   );
 }
