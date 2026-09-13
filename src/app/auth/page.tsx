@@ -42,10 +42,14 @@ function AuthFormContent() {
     setIsSubmitting(true);
 
     try {
+      const cleanEmail = email.trim();
+      const cleanPassword = password.trim();
+      const cleanName = name.trim();
+
       const endpoint = mode === 'signin' ? '/api/v1/users/login' : '/api/v1/users/register';
       const body = mode === 'signin' 
-        ? { email, password } 
-        : { name, email, password, role: 'MEMBER' };
+        ? { email: cleanEmail, password: cleanPassword } 
+        : { name: cleanName, email: cleanEmail, password: cleanPassword, role: 'MEMBER' };
 
       const res = await fetch(endpoint, {
         method: 'POST',

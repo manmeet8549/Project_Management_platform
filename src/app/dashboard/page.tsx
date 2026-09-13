@@ -12,11 +12,9 @@ import {
   Calendar, 
   BarChart3, 
   LineChart, 
-  Sparkles, 
   Plus, 
   Activity, 
   ArrowLeft,
-  Bot,
   FolderPlus,
   LogOut,
   User as UserIcon
@@ -106,7 +104,10 @@ export default function DashboardPage() {
   useEffect(() => {
     fetchDashboardData(true);
 
-    const handleUpdate = () => fetchDashboardData(true);
+    const handleUpdate = () => {
+      invalidateClientCache();
+      fetchDashboardData(true);
+    };
     window.addEventListener('projectsUpdated', handleUpdate);
     window.addEventListener('tasksUpdated', handleUpdate);
     window.addEventListener('taskUpdated', handleUpdate);
@@ -251,7 +252,6 @@ export default function DashboardPage() {
                 <UserIcon className="w-3 h-3 text-black stroke-[3]" />
               </div>
               <span>{user.name}</span>
-              <span className="text-[10px] bg-[#C4B5FD] px-1.5 py-0.5 rounded border border-black uppercase">{user.role}</span>
             </div>
 
             <button
@@ -479,11 +479,11 @@ export default function DashboardPage() {
         </div>
 
         {/* ========================================================================= */}
-        {/* ROW 3: RECENT ACTIVITY & AI PRODUCTIVITY INSIGHT */}
+        {/* ROW 3: RECENT ACTIVITY */}
         {/* ========================================================================= */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 gap-8">
           
-          {/* 1. Recent Activity Card */}
+          {/* Recent Activity Card */}
           <DashboardCard
             title="Recent Activity"
             icon={Activity}
@@ -515,58 +515,6 @@ export default function DashboardPage() {
                   No recent activities recorded yet.
                 </div>
               )}
-            </div>
-          </DashboardCard>
-
-          {/* 2. AI Productivity Insight Card */}
-          <DashboardCard
-            title="AI Productivity Insight"
-            icon={Sparkles}
-            headerBg="bg-[#FF6B6B]"
-          >
-            <div className="flex flex-col gap-6 h-full justify-between">
-              
-              {/* Dialogue Bubble */}
-              <div className="bg-[#FAF8F5] border-2 border-black p-4 rounded-xl flex items-start gap-4 shadow-[3px_3px_0px_rgba(0,0,0,1)] relative">
-                
-                {/* Robot face sticker avatar */}
-                <div className="w-11 h-11 rounded-lg bg-[#FF6B6B] border border-black flex items-center justify-center shadow-[2px_2px_0px_rgba(0,0,0,1)] text-white shrink-0">
-                  <Bot className="w-6 h-6 stroke-[2]" />
-                </div>
-
-                {/* Dialogue Text */}
-                <div className="space-y-1 flex-grow">
-                  <div className="font-black text-xs sm:text-sm text-black flex items-center gap-1.5">
-                    <span>{`Welcome ${user?.name || 'User'}!`}</span>
-                    <span>🚀</span>
-                  </div>
-                  <p className="text-[10px] sm:text-xs font-bold text-zinc-500 leading-normal max-w-sm">
-                    {totalTasks > 0
-                      ? `You currently have ${completedTasks} completed out of ${totalTasks} total tasks in your workspace database.`
-                      : 'You have no tasks created yet. Use AI Copilot or New Task to generate your first task list!'}
-                  </p>
-                </div>
-
-              </div>
-
-              {/* Bottom Custom SVG Graph illustration with trend arrow */}
-              <div className="flex items-end justify-between px-2 pt-2 border-t border-zinc-150 relative">
-                
-                <div className="flex items-end gap-3.5 h-16 w-3/5 pb-1 relative z-10">
-                  <div className="w-5 h-4 bg-[#FF6B6B] border border-black rounded-sm shadow-[1px_1px_0px_rgba(0,0,0,1)]" />
-                  <div className="w-5 h-8 bg-[#FFD93D] border border-black rounded-sm shadow-[1px_1px_0px_rgba(0,0,0,1)]" />
-                  <div className="w-5 h-10 bg-[#FFD93D] border border-black rounded-sm shadow-[1px_1px_0px_rgba(0,0,0,1)]" />
-                  <div className="w-5 h-14 bg-[#C4B5FD] border border-black rounded-sm shadow-[1px_1px_0px_rgba(0,0,0,1)]" />
-                </div>
-
-                <div className="absolute bottom-2 left-2 w-4/5 h-20 pointer-events-none z-20">
-                  <svg className="w-full h-full" viewBox="0 0 160 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M10 68 L48 48 L86 44 L126 14" stroke="black" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M116 12 L128 12 L126 24" stroke="black" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </div>
-              </div>
-
             </div>
           </DashboardCard>
 

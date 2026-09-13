@@ -248,8 +248,8 @@ export function AiCopilotWindow({ isOpen, onClose }: AiCopilotWindowProps) {
       const data = await res.json();
       setIsLoading(false);
 
-      if (data.success && data.data?.reply) {
-        const replyText = data.data.reply;
+      if (data.success && data.data) {
+        const replyText = data.data.reply || (data.data.importedCount ? `I created/updated project **"${data.data.project?.title}"** with ${data.data.importedCount} tasks!` : 'Request completed.');
         const createdType = data.data.createdType as 'credential' | 'note' | undefined;
         const updatedType = data.data.updatedType as string | undefined;
         const createdItem = data.data.item;
@@ -262,7 +262,7 @@ export function AiCopilotWindow({ isOpen, onClose }: AiCopilotWindowProps) {
           window.dispatchEvent(new Event('notesUpdated'));
         }
 
-        if (updatedType === 'task' || updatedType === 'project' || data.data.actionExecuted) {
+        if (updatedType === 'task' || updatedType === 'project' || data.data.actionExecuted || data.data.importedCount) {
           invalidateClientCache();
           window.dispatchEvent(new Event('projectsUpdated'));
           window.dispatchEvent(new Event('tasksUpdated'));
@@ -284,14 +284,25 @@ export function AiCopilotWindow({ isOpen, onClose }: AiCopilotWindowProps) {
           sender: 'ai',
           text: replyText,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          badge: createdType === 'credential' ? 'Credential Saved' : createdType === 'note' ? 'Note Saved' : 'Refinement Copilot',
-          showImportAction: hasIdeaIntent && !createdType,
+          badge: data.data.project?.isNew ? 'New Project Created' :
+                 data.data.importedCount ? 'Tasks Generated' :
+                 createdType === 'credential' ? 'Credential Saved' : 
+                 createdType === 'note' ? 'Note Saved' : 
+                 updatedType === 'task' ? 'Task Workspace' : 
+                 data.data.actionExecuted ? 'Action Executed' : 'Refinement Copilot',
+          showImportAction: hasIdeaIntent && !createdType && !updatedType && !data.data.actionExecuted && !data.data.importedCount,
           createdType,
           createdItem: createdItem ? {
             id: createdItem.id,
             title: createdItem.title,
             category: createdItem.category,
             excerpt: createdItem.excerpt,
+          } : undefined,
+          importedTasksSummary: data.data.importedCount ? {
+            ideaSummary: data.data.ideaSummary || 'Refined project tasks.',
+            count: data.data.importedCount,
+            tasks: data.data.tasks || [],
+            project: data.data.project,
           } : undefined,
         };
 
@@ -300,7 +311,7 @@ export function AiCopilotWindow({ isOpen, onClose }: AiCopilotWindowProps) {
         const errorMsg: Message = {
           id: (Date.now() + 1).toString(),
           sender: 'ai',
-          text: "I'm having trouble connecting to NVIDIA AI Engine. Please check your network or try again.",
+          text: data.error || "I'm having trouble connecting to NVIDIA AI Engine. Please check your network or try again.",
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           badge: 'AI Error',
         };

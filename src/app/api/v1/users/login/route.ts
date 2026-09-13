@@ -8,12 +8,15 @@ import { db } from '@/lib/api/db/db';
 export const POST = apiHandler(async (req: NextRequest) => {
   const body = await validateBody(req, loginUserSchema);
 
-  const user = await db.getUserByEmail(body.email);
+  const cleanEmail = body.email.trim().toLowerCase();
+  const cleanPassword = body.password.trim();
+
+  const user = await db.getUserByEmail(cleanEmail);
   if (!user) {
     throw new UnauthorizedError('Invalid email or password credentials');
   }
 
-  const isMatch = await bcrypt.compare(body.password, user.passwordHash);
+  const isMatch = await bcrypt.compare(cleanPassword, user.passwordHash);
   if (!isMatch) {
     throw new UnauthorizedError('Invalid email or password credentials');
   }

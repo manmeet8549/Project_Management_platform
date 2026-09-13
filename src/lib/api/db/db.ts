@@ -160,9 +160,27 @@ class DatabaseStore {
     {
       id: 'usr-1',
       name: 'Manmeet Singh',
-      email: 'manmeet@example.com',
+      email: 'manmeet@gmail.com',
       passwordHash: defaultPasswordHash,
       role: 'ADMIN',
+      createdAt: '2026-08-01T10:00:00.000Z',
+      updatedAt: '2026-08-01T10:00:00.000Z',
+    },
+    {
+      id: 'usr-2',
+      name: 'Manmeet Singh',
+      email: 'manmeet@gmail.com',
+      passwordHash: defaultPasswordHash,
+      role: 'ADMIN',
+      createdAt: '2026-08-01T10:00:00.000Z',
+      updatedAt: '2026-08-01T10:00:00.000Z',
+    },
+    {
+      id: 'usr-3',
+      name: 'Kabir Singh',
+      email: 'kabir@gmail.com',
+      passwordHash: defaultPasswordHash,
+      role: 'MEMBER',
       createdAt: '2026-08-01T10:00:00.000Z',
       updatedAt: '2026-08-01T10:00:00.000Z',
     },
@@ -376,45 +394,72 @@ class DatabaseStore {
   }
 
   async getUserByEmail(email: string): Promise<UserRecord | null> {
+    const cleanEmail = email.trim().toLowerCase();
     if (this.isPostgresConfigured()) {
       try {
         const user = (await prisma.user.findUnique({
-          where: { email: email.toLowerCase() },
+          where: { email: cleanEmail },
           select: { id: true, name: true, email: true, passwordHash: true, role: true, createdAt: true, updatedAt: true },
         })) as unknown as DbUserRow | null;
-        if (!user) return null;
-        return {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          passwordHash: user.passwordHash || '',
-          role: user.role as UserRecord['role'],
-          createdAt: user.createdAt.toISOString(),
-          updatedAt: user.updatedAt.toISOString(),
-        };
+        if (user) {
+          return {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            passwordHash: user.passwordHash || '',
+            role: user.role as UserRecord['role'],
+            createdAt: user.createdAt.toISOString(),
+            updatedAt: user.updatedAt.toISOString(),
+          };
+        }
       } catch (err) {
-        console.warn('Prisma fetch failed, using fallback store:', err);
+        console.warn('Prisma getUserByEmail fetch failed:', err);
       }
     }
 
-    return this.memoryUsers.find(u => u.email.toLowerCase() === email.toLowerCase()) || null;
+    return this.memoryUsers.find(u => u.email.trim().toLowerCase() === cleanEmail) || null;
   }
 
   async createUser(data: { name: string; email: string; passwordHash: string; role?: 'ADMIN' | 'MANAGER' | 'MEMBER' }): Promise<SafeUserRecord> {
-    apiCache.invalidateTag('users');
+    apiCache.clear();
+    const cleanEmail = data.email.trim().toLowerCase();
+    const cleanName = data.name.trim();
+
+    const memoryRecord: UserRecord = {
+      id: `usr-${Date.now()}`,
+      name: cleanName,
+      email: cleanEmail,
+      passwordHash: data.passwordHash,
+      role: data.role || 'MEMBER',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
     if (this.isPostgresConfigured()) {
       try {
         const roleVal: RoleEnum = (data.role === 'ADMIN' || data.role === 'MANAGER' || data.role === 'MEMBER') ? data.role : 'MEMBER';
         const user = (await prisma.user.create({
           data: {
-            name: data.name,
-            email: data.email.toLowerCase(),
+            name: cleanName,
+            email: cleanEmail,
             passwordHash: data.passwordHash,
             role: roleVal,
           },
           select: { id: true, name: true, email: true, role: true, createdAt: true, updatedAt: true },
         })) as unknown as DbUserRow;
         this.cachedDefaultUserId = user.id;
+
+        memoryRecord.id = user.id;
+        memoryRecord.createdAt = user.createdAt.toISOString();
+        memoryRecord.updatedAt = user.updatedAt.toISOString();
+
+        const existingIdx = this.memoryUsers.findIndex(u => u.id === user.id || u.email.trim().toLowerCase() === cleanEmail);
+        if (existingIdx !== -1) {
+          this.memoryUsers[existingIdx] = memoryRecord;
+        } else {
+          this.memoryUsers.push(memoryRecord);
+        }
+
         return {
           id: user.id,
           name: user.name,
@@ -424,21 +469,17 @@ class DatabaseStore {
           updatedAt: user.updatedAt.toISOString(),
         };
       } catch (err) {
-        console.warn('Prisma create failed, fallback to memory:', err);
+        console.warn('Prisma create user failed, fallback to memory store:', err);
       }
     }
 
-    const newUser: UserRecord = {
-      id: `usr-${Date.now()}`,
-      name: data.name,
-      email: data.email.toLowerCase(),
-      passwordHash: data.passwordHash,
-      role: data.role || 'MEMBER',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    this.memoryUsers.push(newUser);
-    return sanitizeUser(newUser);
+    const existingIdx = this.memoryUsers.findIndex(u => u.email.trim().toLowerCase() === cleanEmail);
+    if (existingIdx !== -1) {
+      this.memoryUsers[existingIdx] = memoryRecord;
+    } else {
+      this.memoryUsers.push(memoryRecord);
+    }
+    return sanitizeUser(memoryRecord);
   }
 
   async updateUser(id: string, data: Partial<Omit<UserRecord, 'id' | 'passwordHash' | 'createdAt'>>): Promise<SafeUserRecord | null> {
@@ -504,6 +545,25 @@ class DatabaseStore {
     const cached = apiCache.get<ProjectRecord[]>(cacheKey);
     if (cached) return cached;
 
+    let targetOwnerId = query?.ownerId;
+    if (targetOwnerId) {
+      targetOwnerId = this.aliasMap.get(targetOwnerId) || targetOwnerId;
+    }
+
+    const ownerIds = new Set<string>();
+    if (query?.ownerId) {
+      ownerIds.add(query.ownerId);
+      if (targetOwnerId) ownerIds.add(targetOwnerId);
+
+      const memUser = this.memoryUsers.find(
+        u => u.id === query.ownerId || u.id === targetOwnerId || u.email.toLowerCase() === query.ownerId!.toLowerCase()
+      );
+      if (memUser) {
+        ownerIds.add(memUser.id);
+        ownerIds.add(memUser.email);
+      }
+    }
+
     let resultList: ProjectRecord[] = [];
     if (this.isPostgresConfigured()) {
       try {
@@ -515,13 +575,34 @@ class DatabaseStore {
         };
         const mappedStatus = query?.status ? statusMap[query.status] : undefined;
 
+        let ownerWhere = {};
+        if (query?.ownerId) {
+          const memUser = this.memoryUsers.find(
+            u => u.id === query.ownerId || u.id === targetOwnerId || u.email.toLowerCase() === query.ownerId!.toLowerCase()
+          );
+          if (memUser) {
+            const dbU = await prisma.user.findUnique({ where: { email: memUser.email.toLowerCase() }, select: { id: true } });
+            if (dbU) ownerIds.add(dbU.id);
+          } else {
+            const dbU = await prisma.user.findFirst({
+              where: { OR: [{ id: query.ownerId }, { email: query.ownerId.toLowerCase() }] },
+              select: { id: true, email: true },
+            });
+            if (dbU) {
+              ownerIds.add(dbU.id);
+              ownerIds.add(dbU.email);
+            }
+          }
+          ownerWhere = { ownerId: { in: Array.from(ownerIds) } };
+        }
+
         const projects = (await prisma.project.findMany({
           select: { id: true, title: true, description: true, category: true, status: true, dueDate: true, ownerId: true, createdAt: true, updatedAt: true },
           where: {
             AND: [
               query?.category ? { category: { equals: query.category, mode: 'insensitive' } } : {},
               mappedStatus ? { status: mappedStatus } : {},
-              query?.ownerId ? { ownerId: query.ownerId } : {},
+              ownerWhere,
               query?.search ? {
                 OR: [
                   { title: { contains: query.search, mode: 'insensitive' } },
@@ -544,6 +625,16 @@ class DatabaseStore {
           createdAt: p.createdAt.toISOString(),
           updatedAt: p.updatedAt.toISOString(),
         }));
+
+        // Merge any memory projects belonging to this owner that were created earlier
+        if (query?.ownerId) {
+          for (const mp of this.memoryProjects) {
+            if ((ownerIds.has(mp.ownerId) || mp.ownerId === query.ownerId || mp.ownerId === targetOwnerId) && !resultList.some(rp => rp.id === mp.id)) {
+              resultList.push(mp);
+            }
+          }
+        }
+
         apiCache.set(cacheKey, resultList, 10, ['projects']);
         return resultList;
       } catch (err) {
@@ -559,7 +650,7 @@ class DatabaseStore {
       result = result.filter(p => p.status === query.status);
     }
     if (query?.ownerId) {
-      result = result.filter(p => p.ownerId === query.ownerId);
+      result = result.filter(p => ownerIds.has(p.ownerId) || p.ownerId === query.ownerId || p.ownerId === targetOwnerId);
     }
     if (query?.search) {
       const q = query.search.toLowerCase();
@@ -628,15 +719,35 @@ class DatabaseStore {
   }
 
   async createProject(data: Omit<ProjectRecord, 'id' | 'createdAt' | 'updatedAt'>) {
-    apiCache.invalidateTag('projects');
+    apiCache.clear();
     if (this.isPostgresConfigured()) {
       try {
         let ownerId = data.ownerId ? (this.aliasMap.get(data.ownerId) || data.ownerId) : undefined;
-        if (ownerId) {
-          const userExists = await prisma.user.findUnique({ where: { id: ownerId }, select: { id: true } });
-          if (!userExists) {
-            const firstUser = await prisma.user.findFirst({ select: { id: true } });
-            ownerId = firstUser ? firstUser.id : undefined;
+
+        if (data.ownerId) {
+          const memUser = this.memoryUsers.find(
+            u => u.id === data.ownerId || u.id === ownerId || u.email.toLowerCase() === data.ownerId.toLowerCase()
+          );
+          if (memUser) {
+            let dbUser = await prisma.user.findUnique({ where: { email: memUser.email.toLowerCase() }, select: { id: true } });
+            if (!dbUser) {
+              dbUser = await prisma.user.create({
+                data: { name: memUser.name, email: memUser.email.toLowerCase(), passwordHash: memUser.passwordHash, role: memUser.role as RoleEnum },
+                select: { id: true },
+              });
+            }
+            ownerId = dbUser.id;
+            this.aliasMap.set(data.ownerId, dbUser.id);
+            this.aliasMap.set(dbUser.id, data.ownerId);
+            this.aliasMap.set(memUser.id, dbUser.id);
+          } else {
+            const userExists = await prisma.user.findFirst({
+              where: { OR: [{ id: data.ownerId }, { email: data.ownerId.toLowerCase() }] },
+              select: { id: true },
+            });
+            if (userExists) {
+              ownerId = userExists.id;
+            }
           }
         }
 
@@ -668,6 +779,24 @@ class DatabaseStore {
 
         this.cachedDefaultProjectId = project.id;
 
+        const memoryRecord: ProjectRecord = {
+          id: project.id,
+          title: project.title,
+          description: project.description,
+          category: project.category,
+          status: (project.status === 'in_progress' ? 'in-progress' : project.status === 'on_hold' ? 'on-hold' : project.status) as ProjectRecord['status'],
+          dueDate: project.dueDate ? project.dueDate.toISOString().split('T')[0] : null,
+          ownerId: data.ownerId || project.ownerId,
+          createdAt: project.createdAt.toISOString(),
+          updatedAt: project.updatedAt.toISOString(),
+        };
+        const existingIdx = this.memoryProjects.findIndex(p => p.id === project.id);
+        if (existingIdx !== -1) {
+          this.memoryProjects[existingIdx] = memoryRecord;
+        } else {
+          this.memoryProjects.push(memoryRecord);
+        }
+
         const res: ProjectWithStats = {
           id: project.id,
           title: project.title,
@@ -697,7 +826,7 @@ class DatabaseStore {
   }
 
   async updateProject(id: string, data: Partial<Omit<ProjectRecord, 'id' | 'createdAt'>>) {
-    apiCache.invalidateTag('projects');
+    apiCache.clear();
     if (this.isPostgresConfigured()) {
       try {
         const targetId = this.aliasMap.get(id) || id;
@@ -764,7 +893,7 @@ class DatabaseStore {
   }
 
   async deleteProject(id: string) {
-    apiCache.invalidateTag('projects');
+    apiCache.clear();
     if (this.isPostgresConfigured()) {
       try {
         const targetId = this.aliasMap.get(id) || id;
@@ -818,6 +947,34 @@ class DatabaseStore {
         const mappedStatus = query?.status ? taskStatusMap[query.status] : undefined;
         const priorityFilter = (query?.priority === 'low' || query?.priority === 'medium' || query?.priority === 'high' || query?.priority === 'urgent') ? (query.priority as TaskPriorityEnum) : undefined;
 
+        let ownerWhere = {};
+        if (query?.ownerId) {
+          const ownerIds = new Set<string>();
+          ownerIds.add(query.ownerId);
+          const targetOwnerId = this.aliasMap.get(query.ownerId) || query.ownerId;
+          if (targetOwnerId) ownerIds.add(targetOwnerId);
+
+          const memUser = this.memoryUsers.find(
+            u => u.id === query.ownerId || u.id === targetOwnerId || u.email.toLowerCase() === query.ownerId!.toLowerCase()
+          );
+          if (memUser) {
+            ownerIds.add(memUser.id);
+            ownerIds.add(memUser.email);
+            const dbU = await prisma.user.findUnique({ where: { email: memUser.email.toLowerCase() }, select: { id: true } });
+            if (dbU) ownerIds.add(dbU.id);
+          } else {
+            const dbU = await prisma.user.findFirst({
+              where: { OR: [{ id: query.ownerId }, { email: query.ownerId.toLowerCase() }] },
+              select: { id: true, email: true },
+            });
+            if (dbU) {
+              ownerIds.add(dbU.id);
+              ownerIds.add(dbU.email);
+            }
+          }
+          ownerWhere = { project: { ownerId: { in: Array.from(ownerIds) } } };
+        }
+
         const tasks = (await prisma.task.findMany({
           select: {
             id: true,
@@ -837,7 +994,7 @@ class DatabaseStore {
             AND: [
               targetProjectId ? { projectId: targetProjectId } : {},
               query?.assigneeId ? { assigneeId: query.assigneeId } : {},
-              query?.ownerId ? { project: { ownerId: query.ownerId } } : {},
+              ownerWhere,
               mappedStatus ? { status: mappedStatus } : {},
               priorityFilter ? { priority: priorityFilter } : {},
               query?.search ? {
@@ -971,8 +1128,8 @@ class DatabaseStore {
     return res;
   }
 
-  async createTask(data: Omit<TaskRecord, 'id' | 'createdAt' | 'updatedAt'>) {
-    apiCache.invalidateTag('tasks');
+  async createTask(data: Partial<TaskRecord> & { title: string; priority: TaskPriorityEnum; status: TaskRecord['status'] | TaskStatusEnum; projectId: string }) {
+    apiCache.clear();
     if (this.isPostgresConfigured()) {
       try {
         let projectId = data.projectId ? (this.aliasMap.get(data.projectId) || data.projectId) : undefined;
@@ -1017,6 +1174,7 @@ class DatabaseStore {
             projectId: projectId!,
             assigneeId,
             dueDate: data.dueDate ? new Date(data.dueDate) : null,
+            createdAt: data.createdAt ? new Date(data.createdAt) : undefined,
           },
           select: {
             id: true,
@@ -1056,8 +1214,14 @@ class DatabaseStore {
 
     const newTask: TaskRecord = {
       id: `tsk-${Date.now()}`,
-      ...data,
-      createdAt: new Date().toISOString(),
+      title: data.title,
+      description: data.description || '',
+      status: ((data.status as string) === 'in_progress' ? 'in-progress' : data.status) as TaskRecord['status'],
+      priority: data.priority as TaskRecord['priority'],
+      projectId: data.projectId,
+      assigneeId: data.assigneeId || null,
+      dueDate: data.dueDate || null,
+      createdAt: data.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
     this.memoryTasks.push(newTask);
@@ -1065,7 +1229,7 @@ class DatabaseStore {
   }
 
   async updateTask(id: string, data: Partial<Omit<TaskRecord, 'id' | 'createdAt'>>) {
-    apiCache.invalidateTag('tasks');
+    apiCache.clear();
     if (this.isPostgresConfigured()) {
       try {
         const targetId = this.aliasMap.get(id) || id;
@@ -1166,7 +1330,7 @@ class DatabaseStore {
   }
 
   async updateTaskStatus(id: string, status: TaskRecord['status']) {
-    apiCache.invalidateTag('tasks');
+    apiCache.clear();
     if (this.isPostgresConfigured()) {
       try {
         const targetId = this.aliasMap.get(id) || id;
@@ -1247,7 +1411,7 @@ class DatabaseStore {
   }
 
   async deleteTask(id: string) {
-    apiCache.invalidateTag('tasks');
+    apiCache.clear();
     if (this.isPostgresConfigured()) {
       try {
         const targetId = this.aliasMap.get(id) || id;
@@ -1280,12 +1444,8 @@ class DatabaseStore {
     if (cached) return cached;
 
     let res = [...this.memoryCredentials];
-    if (query?.userId) {
-      const userProjIds = new Set(this.memoryProjects.filter(p => p.ownerId === query.userId).map(p => p.id));
-      res = res.filter(c => c.userId === query.userId || (c.projectId && userProjIds.has(c.projectId)));
-    }
     if (query?.projectId) {
-      res = res.filter(c => c.projectId === query.projectId);
+      res = res.filter(c => !c.projectId || c.projectId === query.projectId);
     }
     if (query?.category) {
       res = res.filter(c => c.category.toLowerCase().includes(query.category!.toLowerCase()));
@@ -1304,7 +1464,7 @@ class DatabaseStore {
   }
 
   async createCredential(data: Partial<CredentialRecord>): Promise<CredentialRecord> {
-    apiCache.invalidateTag('credentials');
+    apiCache.clear();
     const newCred: CredentialRecord = {
       id: `c-${Date.now()}`,
       projectId: data.projectId,
@@ -1322,7 +1482,7 @@ class DatabaseStore {
   }
 
   async updateCredential(id: string, data: Partial<CredentialRecord>): Promise<CredentialRecord | null> {
-    apiCache.invalidateTag('credentials');
+    apiCache.clear();
     const index = this.memoryCredentials.findIndex(c => c.id === id);
     if (index === -1) return null;
 
@@ -1338,7 +1498,7 @@ class DatabaseStore {
   }
 
   async deleteCredential(id: string): Promise<boolean> {
-    apiCache.invalidateTag('credentials');
+    apiCache.clear();
     const index = this.memoryCredentials.findIndex(c => c.id === id);
     if (index === -1) return false;
     this.memoryCredentials.splice(index, 1);
@@ -1352,12 +1512,8 @@ class DatabaseStore {
     if (cached) return cached;
 
     let res = [...this.memoryNotes];
-    if (query?.userId) {
-      const userProjIds = new Set(this.memoryProjects.filter(p => p.ownerId === query.userId).map(p => p.id));
-      res = res.filter(n => n.userId === query.userId || (n.projectId && userProjIds.has(n.projectId)));
-    }
     if (query?.projectId) {
-      res = res.filter(n => n.projectId === query.projectId);
+      res = res.filter(n => !n.projectId || n.projectId === query.projectId);
     }
     if (query?.search) {
       const q = query.search.toLowerCase();
@@ -1373,7 +1529,7 @@ class DatabaseStore {
   }
 
   async createNote(data: Partial<NoteRecord>): Promise<NoteRecord> {
-    apiCache.invalidateTag('notes');
+    apiCache.clear();
     const newNote: NoteRecord = {
       id: `n-${Date.now()}`,
       projectId: data.projectId,
@@ -1396,7 +1552,7 @@ class DatabaseStore {
   }
 
   async updateNote(id: string, data: Partial<NoteRecord>): Promise<NoteRecord | null> {
-    apiCache.invalidateTag('notes');
+    apiCache.clear();
     const index = this.memoryNotes.findIndex(n => n.id === id);
     if (index === -1) return null;
 
@@ -1412,7 +1568,7 @@ class DatabaseStore {
   }
 
   async deleteNote(id: string): Promise<boolean> {
-    apiCache.invalidateTag('notes');
+    apiCache.clear();
     const index = this.memoryNotes.findIndex(n => n.id === id);
     if (index === -1) return false;
     this.memoryNotes.splice(index, 1);

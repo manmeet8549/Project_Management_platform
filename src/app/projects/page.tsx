@@ -142,7 +142,10 @@ export default function ProjectsPage() {
   React.useEffect(() => {
     fetchProjectsData(true);
 
-    const handleUpdate = () => fetchProjectsData(true);
+    const handleUpdate = () => {
+      invalidateClientCache();
+      fetchProjectsData(true);
+    };
     window.addEventListener('projectsUpdated', handleUpdate);
     window.addEventListener('tasksUpdated', handleUpdate);
     window.addEventListener('taskUpdated', handleUpdate);

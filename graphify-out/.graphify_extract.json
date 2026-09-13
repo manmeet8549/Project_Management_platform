@@ -1,0 +1,1569 @@
+{
+  "nodes": [
+    {
+      "id": "docs_route_get",
+      "label": "GET",
+      "file_type": "code",
+      "source_file": "src/app/api/docs/route.ts",
+      "source_location": "L3",
+      "_origin": "ast"
+    },
+    {
+      "id": "chat_route_post",
+      "label": "POST",
+      "file_type": "code",
+      "source_file": "src/app/api/v1/ai/chat/route.ts",
+      "source_location": "L80",
+      "_origin": "ast"
+    },
+    {
+      "id": "app_layout_rootlayout",
+      "label": "RootLayout",
+      "file_type": "code",
+      "source_file": "src/app/layout.tsx",
+      "source_location": "L22",
+      "_origin": "ast"
+    },
+    {
+      "id": "login_page_loginpage",
+      "label": "LoginPage",
+      "file_type": "code",
+      "source_file": "src/app/login/page.tsx",
+      "source_location": "L3",
+      "_origin": "ast"
+    },
+    {
+      "id": "app_page_homepage",
+      "label": "HomePage",
+      "file_type": "code",
+      "source_file": "src/app/page.tsx",
+      "source_location": "L8",
+      "_origin": "ast"
+    },
+    {
+      "id": "signup_page_signuppage",
+      "label": "SignupPage",
+      "file_type": "code",
+      "source_file": "src/app/signup/page.tsx",
+      "source_location": "L3",
+      "_origin": "ast"
+    },
+    {
+      "id": "auth_authguard_authprovider",
+      "label": "AuthProvider",
+      "file_type": "code",
+      "source_file": "src/components/auth/AuthGuard.tsx",
+      "source_location": "L36",
+      "_origin": "ast"
+    },
+    {
+      "id": "landing_features_features",
+      "label": "Features",
+      "file_type": "code",
+      "source_file": "src/components/landing/Features.tsx",
+      "source_location": "L15",
+      "_origin": "ast"
+    },
+    {
+      "id": "landing_finalcta_finalcta",
+      "label": "FinalCTA",
+      "file_type": "code",
+      "source_file": "src/components/landing/FinalCTA.tsx",
+      "source_location": "L5",
+      "_origin": "ast"
+    },
+    {
+      "id": "landing_hero_hero",
+      "label": "Hero",
+      "file_type": "code",
+      "source_file": "src/components/landing/Hero.tsx",
+      "source_location": "L5",
+      "_origin": "ast"
+    },
+    {
+      "id": "landing_painpoints_painpoints",
+      "label": "PainPoints",
+      "file_type": "code",
+      "source_file": "src/components/landing/PainPoints.tsx",
+      "source_location": "L5",
+      "_origin": "ast"
+    },
+    {
+      "id": "layout_floatingdock_floatingdock",
+      "label": "FloatingDock",
+      "file_type": "code",
+      "source_file": "src/components/layout/FloatingDock.tsx",
+      "source_location": "L26",
+      "_origin": "ast"
+    },
+    {
+      "id": "layout_publicheader_publicheader",
+      "label": "PublicHeader",
+      "file_type": "code",
+      "source_file": "src/components/layout/PublicHeader.tsx",
+      "source_location": "L4",
+      "_origin": "ast"
+    },
+    {
+      "id": "modals_projectsettingsmodal_projectsettingsdata",
+      "label": "ProjectSettingsData",
+      "file_type": "code",
+      "source_file": "src/components/modals/ProjectSettingsModal.tsx",
+      "source_location": "L15",
+      "_origin": "ast"
+    },
+    {
+      "id": "modals_projectsettingsmodal_projectsettingsmodalprops",
+      "label": "ProjectSettingsModalProps",
+      "file_type": "code",
+      "source_file": "src/components/modals/ProjectSettingsModal.tsx",
+      "source_location": "L24",
+      "_origin": "ast"
+    },
+    {
+      "id": "modals_projectsettingsmodal_projectsettingsmodal",
+      "label": "ProjectSettingsModal",
+      "file_type": "code",
+      "source_file": "src/components/modals/ProjectSettingsModal.tsx",
+      "source_location": "L32",
+      "_origin": "ast"
+    },
+    {
+      "id": "db_db_userrecord",
+      "label": "UserRecord",
+      "file_type": "code",
+      "source_file": "src/lib/api/db/db.ts",
+      "source_location": "L5",
+      "_origin": "ast"
+    },
+    {
+      "id": "db_db_safeuserrecord",
+      "label": "SafeUserRecord",
+      "file_type": "code",
+      "source_file": "src/lib/api/db/db.ts",
+      "source_location": "L15",
+      "_origin": "ast"
+    },
+    {
+      "id": "db_db_projectrecord",
+      "label": "ProjectRecord",
+      "file_type": "code",
+      "source_file": "src/lib/api/db/db.ts",
+      "source_location": "L17",
+      "_origin": "ast"
+    },
+    {
+      "id": "db_db_taskrecord",
+      "label": "TaskRecord",
+      "file_type": "code",
+      "source_file": "src/lib/api/db/db.ts",
+      "source_location": "L29",
+      "_origin": "ast"
+    },
+    {
+      "id": "db_db_projectwithstats",
+      "label": "ProjectWithStats",
+      "file_type": "code",
+      "source_file": "src/lib/api/db/db.ts",
+      "source_location": "L42",
+      "_origin": "ast"
+    },
+    {
+      "id": "db_db_taskwithrelations",
+      "label": "TaskWithRelations",
+      "file_type": "code",
+      "source_file": "src/lib/api/db/db.ts",
+      "source_location": "L51",
+      "_origin": "ast"
+    },
+    {
+      "id": "db_db_credentialfield",
+      "label": "CredentialField",
+      "file_type": "code",
+      "source_file": "src/lib/api/db/db.ts",
+      "source_location": "L56",
+      "_origin": "ast"
+    },
+    {
+      "id": "db_db_credentialrecord",
+      "label": "CredentialRecord",
+      "file_type": "code",
+      "source_file": "src/lib/api/db/db.ts",
+      "source_location": "L61",
+      "_origin": "ast"
+    },
+    {
+      "id": "db_db_notesection",
+      "label": "NoteSection",
+      "file_type": "code",
+      "source_file": "src/lib/api/db/db.ts",
+      "source_location": "L74",
+      "_origin": "ast"
+    },
+    {
+      "id": "db_db_noterecord",
+      "label": "NoteRecord",
+      "file_type": "code",
+      "source_file": "src/lib/api/db/db.ts",
+      "source_location": "L79",
+      "_origin": "ast"
+    },
+    {
+      "id": "errors_errors_fielderrordetail",
+      "label": "FieldErrorDetail",
+      "file_type": "code",
+      "source_file": "src/lib/api/errors/errors.ts",
+      "source_location": "L3",
+      "_origin": "ast"
+    },
+    {
+      "id": "errors_errors_apperror",
+      "label": "AppError",
+      "file_type": "code",
+      "source_file": "src/lib/api/errors/errors.ts",
+      "source_location": "L8",
+      "_origin": "ast"
+    },
+    {
+      "id": "errors_errors_badrequesterror",
+      "label": "BadRequestError",
+      "file_type": "code",
+      "source_file": "src/lib/api/errors/errors.ts",
+      "source_location": "L23",
+      "_origin": "ast"
+    },
+    {
+      "id": "errors_errors_unauthorizederror",
+      "label": "UnauthorizedError",
+      "file_type": "code",
+      "source_file": "src/lib/api/errors/errors.ts",
+      "source_location": "L29",
+      "_origin": "ast"
+    },
+    {
+      "id": "errors_errors_forbiddenerror",
+      "label": "ForbiddenError",
+      "file_type": "code",
+      "source_file": "src/lib/api/errors/errors.ts",
+      "source_location": "L35",
+      "_origin": "ast"
+    },
+    {
+      "id": "errors_errors_notfounderror",
+      "label": "NotFoundError",
+      "file_type": "code",
+      "source_file": "src/lib/api/errors/errors.ts",
+      "source_location": "L41",
+      "_origin": "ast"
+    },
+    {
+      "id": "errors_errors_conflicterror",
+      "label": "ConflictError",
+      "file_type": "code",
+      "source_file": "src/lib/api/errors/errors.ts",
+      "source_location": "L47",
+      "_origin": "ast"
+    },
+    {
+      "id": "errors_errors_validationerror",
+      "label": "ValidationError",
+      "file_type": "code",
+      "source_file": "src/lib/api/errors/errors.ts",
+      "source_location": "L53",
+      "_origin": "ast"
+    },
+    {
+      "id": "errors_errors_successresponse",
+      "label": "successResponse",
+      "file_type": "code",
+      "source_file": "src/lib/api/errors/errors.ts",
+      "source_location": "L59",
+      "_origin": "ast"
+    },
+    {
+      "id": "errors_errors_errorresponse",
+      "label": "errorResponse",
+      "file_type": "code",
+      "source_file": "src/lib/api/errors/errors.ts",
+      "source_location": "L84",
+      "_origin": "ast"
+    },
+    {
+      "id": "middleware_middleware_parsezoderror",
+      "label": "parseZodError",
+      "file_type": "code",
+      "source_file": "src/lib/api/middleware/middleware.ts",
+      "source_location": "L7",
+      "_origin": "ast"
+    },
+    {
+      "id": "middleware_middleware_validatebody",
+      "label": "validateBody",
+      "file_type": "code",
+      "source_file": "src/lib/api/middleware/middleware.ts",
+      "source_location": "L14",
+      "_origin": "ast"
+    },
+    {
+      "id": "middleware_middleware_validatequery",
+      "label": "validateQuery",
+      "file_type": "code",
+      "source_file": "src/lib/api/middleware/middleware.ts",
+      "source_location": "L31",
+      "_origin": "ast"
+    },
+    {
+      "id": "middleware_middleware_jwtuserpayload",
+      "label": "JwtUserPayload",
+      "file_type": "code",
+      "source_file": "src/lib/api/middleware/middleware.ts",
+      "source_location": "L47",
+      "_origin": "ast"
+    },
+    {
+      "id": "middleware_middleware_generatejwttoken",
+      "label": "generateJwtToken",
+      "file_type": "code",
+      "source_file": "src/lib/api/middleware/middleware.ts",
+      "source_location": "L53",
+      "_origin": "ast"
+    },
+    {
+      "id": "middleware_middleware_verifyauthtoken",
+      "label": "verifyAuthToken",
+      "file_type": "code",
+      "source_file": "src/lib/api/middleware/middleware.ts",
+      "source_location": "L57",
+      "_origin": "ast"
+    },
+    {
+      "id": "middleware_middleware_getauthuseroptional",
+      "label": "getAuthUserOptional",
+      "file_type": "code",
+      "source_file": "src/lib/api/middleware/middleware.ts",
+      "source_location": "L72",
+      "_origin": "ast"
+    },
+    {
+      "id": "middleware_middleware_apihandler",
+      "label": "apiHandler",
+      "file_type": "code",
+      "source_file": "src/lib/api/middleware/middleware.ts",
+      "source_location": "L87",
+      "_origin": "ast"
+    },
+    {
+      "id": "validators_project_schema_createprojectinput",
+      "label": "CreateProjectInput",
+      "file_type": "code",
+      "source_file": "src/lib/api/validators/project.schema.ts",
+      "source_location": "L21",
+      "_origin": "ast"
+    },
+    {
+      "id": "validators_project_schema_updateprojectinput",
+      "label": "UpdateProjectInput",
+      "file_type": "code",
+      "source_file": "src/lib/api/validators/project.schema.ts",
+      "source_location": "L22",
+      "_origin": "ast"
+    },
+    {
+      "id": "validators_task_schema_createtaskinput",
+      "label": "CreateTaskInput",
+      "file_type": "code",
+      "source_file": "src/lib/api/validators/task.schema.ts",
+      "source_location": "L29",
+      "_origin": "ast"
+    },
+    {
+      "id": "validators_task_schema_updatetaskinput",
+      "label": "UpdateTaskInput",
+      "file_type": "code",
+      "source_file": "src/lib/api/validators/task.schema.ts",
+      "source_location": "L30",
+      "_origin": "ast"
+    },
+    {
+      "id": "validators_task_schema_updatetaskstatusinput",
+      "label": "UpdateTaskStatusInput",
+      "file_type": "code",
+      "source_file": "src/lib/api/validators/task.schema.ts",
+      "source_location": "L31",
+      "_origin": "ast"
+    },
+    {
+      "id": "validators_user_schema_registeruserinput",
+      "label": "RegisterUserInput",
+      "file_type": "code",
+      "source_file": "src/lib/api/validators/user.schema.ts",
+      "source_location": "L21",
+      "_origin": "ast"
+    },
+    {
+      "id": "validators_user_schema_loginuserinput",
+      "label": "LoginUserInput",
+      "file_type": "code",
+      "source_file": "src/lib/api/validators/user.schema.ts",
+      "source_location": "L22",
+      "_origin": "ast"
+    },
+    {
+      "id": "validators_user_schema_updateuserinput",
+      "label": "UpdateUserInput",
+      "file_type": "code",
+      "source_file": "src/lib/api/validators/user.schema.ts",
+      "source_location": "L23",
+      "_origin": "ast"
+    },
+    {
+      "id": "client_clientcache_invalidateclientcache",
+      "label": "invalidateClientCache",
+      "file_type": "code",
+      "source_file": "src/lib/client/clientCache.ts",
+      "source_location": "L127",
+      "_origin": "ast"
+    },
+    {
+      "id": "client_clientcache_fetchwithcache",
+      "label": "fetchWithCache",
+      "file_type": "code",
+      "source_file": "src/lib/client/clientCache.ts",
+      "source_location": "L141",
+      "_origin": "ast"
+    },
+    {
+      "id": "lib_utils_cn",
+      "label": "cn",
+      "file_type": "code",
+      "source_file": "src/lib/utils.ts",
+      "source_location": "L4",
+      "_origin": "ast"
+    }
+  ],
+  "edges": [
+    {
+      "source": "chat_route",
+      "target": "db_db_taskrecord",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/api/v1/ai/chat/route.ts",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "chat_route",
+      "target": "db_db_credentialrecord",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/api/v1/ai/chat/route.ts",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "chat_route",
+      "target": "db_db_noterecord",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/api/v1/ai/chat/route.ts",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "chat_route",
+      "target": "middleware_middleware_getauthuseroptional",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/api/v1/ai/chat/route.ts",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "id_route",
+      "target": "middleware_middleware_apihandler",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/api/v1/notes/[id]/route.ts",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "id_route",
+      "target": "errors_errors_successresponse",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/api/v1/notes/[id]/route.ts",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "id_route",
+      "target": "errors_errors_notfounderror",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/api/v1/notes/[id]/route.ts",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "notes_route",
+      "target": "middleware_middleware_apihandler",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/api/v1/notes/route.ts",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "notes_route",
+      "target": "middleware_middleware_getauthuseroptional",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/api/v1/notes/route.ts",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "notes_route",
+      "target": "errors_errors_successresponse",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/api/v1/notes/route.ts",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "id_route",
+      "target": "middleware_middleware_apihandler",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/api/v1/projects/[id]/route.ts",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "id_route",
+      "target": "middleware_middleware_validatebody",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/api/v1/projects/[id]/route.ts",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "id_route",
+      "target": "errors_errors_successresponse",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/api/v1/projects/[id]/route.ts",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "id_route",
+      "target": "errors_errors_notfounderror",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/api/v1/projects/[id]/route.ts",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "projects_route",
+      "target": "middleware_middleware_apihandler",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/api/v1/projects/route.ts",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "projects_route",
+      "target": "middleware_middleware_validatebody",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/api/v1/projects/route.ts",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "projects_route",
+      "target": "middleware_middleware_getauthuseroptional",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/api/v1/projects/route.ts",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "projects_route",
+      "target": "errors_errors_successresponse",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/api/v1/projects/route.ts",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "id_route",
+      "target": "middleware_middleware_apihandler",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/api/v1/tasks/[id]/route.ts",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "id_route",
+      "target": "middleware_middleware_validatebody",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/api/v1/tasks/[id]/route.ts",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "id_route",
+      "target": "errors_errors_successresponse",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/api/v1/tasks/[id]/route.ts",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "id_route",
+      "target": "errors_errors_notfounderror",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/api/v1/tasks/[id]/route.ts",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "status_route",
+      "target": "middleware_middleware_apihandler",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/api/v1/tasks/[id]/status/route.ts",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "status_route",
+      "target": "middleware_middleware_validatebody",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/api/v1/tasks/[id]/status/route.ts",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "status_route",
+      "target": "errors_errors_successresponse",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/api/v1/tasks/[id]/status/route.ts",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "status_route",
+      "target": "errors_errors_notfounderror",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/api/v1/tasks/[id]/status/route.ts",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "tasks_route",
+      "target": "middleware_middleware_apihandler",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/api/v1/tasks/route.ts",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "tasks_route",
+      "target": "middleware_middleware_validatebody",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/api/v1/tasks/route.ts",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "tasks_route",
+      "target": "middleware_middleware_getauthuseroptional",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/api/v1/tasks/route.ts",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "tasks_route",
+      "target": "errors_errors_successresponse",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/api/v1/tasks/route.ts",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "tasks_route",
+      "target": "errors_errors_notfounderror",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/api/v1/tasks/route.ts",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "id_route",
+      "target": "middleware_middleware_apihandler",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/api/v1/users/[id]/route.ts",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "id_route",
+      "target": "middleware_middleware_validatebody",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/api/v1/users/[id]/route.ts",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "id_route",
+      "target": "errors_errors_successresponse",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/api/v1/users/[id]/route.ts",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "id_route",
+      "target": "errors_errors_notfounderror",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/api/v1/users/[id]/route.ts",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "id_route",
+      "target": "errors_errors_conflicterror",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/api/v1/users/[id]/route.ts",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "login_route",
+      "target": "middleware_middleware_apihandler",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/api/v1/users/login/route.ts",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "login_route",
+      "target": "middleware_middleware_validatebody",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/api/v1/users/login/route.ts",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "login_route",
+      "target": "middleware_middleware_generatejwttoken",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/api/v1/users/login/route.ts",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "login_route",
+      "target": "errors_errors_successresponse",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/api/v1/users/login/route.ts",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "login_route",
+      "target": "errors_errors_unauthorizederror",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/api/v1/users/login/route.ts",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "register_route",
+      "target": "middleware_middleware_apihandler",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/api/v1/users/register/route.ts",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "register_route",
+      "target": "middleware_middleware_validatebody",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/api/v1/users/register/route.ts",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "register_route",
+      "target": "middleware_middleware_generatejwttoken",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/api/v1/users/register/route.ts",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "register_route",
+      "target": "errors_errors_successresponse",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/api/v1/users/register/route.ts",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "register_route",
+      "target": "errors_errors_conflicterror",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/api/v1/users/register/route.ts",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "users_route",
+      "target": "middleware_middleware_apihandler",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/api/v1/users/route.ts",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "users_route",
+      "target": "errors_errors_successresponse",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/api/v1/users/route.ts",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "auth_page",
+      "target": "lib_utils_cn",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/auth/page.tsx",
+      "source_location": "L21",
+      "weight": 1.0
+    },
+    {
+      "source": "dashboard_page",
+      "target": "lib_utils_cn",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/dashboard/page.tsx",
+      "source_location": "L22",
+      "weight": 1.0
+    },
+    {
+      "source": "dashboard_page",
+      "target": "client_clientcache_fetchwithcache",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/dashboard/page.tsx",
+      "source_location": "L23",
+      "weight": 1.0
+    },
+    {
+      "source": "dashboard_page",
+      "target": "client_clientcache_invalidateclientcache",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/dashboard/page.tsx",
+      "source_location": "L23",
+      "weight": 1.0
+    },
+    {
+      "source": "app_layout",
+      "target": "layout_floatingdock_floatingdock",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/layout.tsx",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "app_layout",
+      "target": "auth_authguard_authprovider",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/layout.tsx",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "notifications_page",
+      "target": "lib_utils_cn",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/notifications/page.tsx",
+      "source_location": "L18",
+      "weight": 1.0
+    },
+    {
+      "source": "app_page",
+      "target": "layout_publicheader_publicheader",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/page.tsx",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "app_page",
+      "target": "landing_hero_hero",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/page.tsx",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "app_page",
+      "target": "landing_features_features",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/page.tsx",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "app_page",
+      "target": "landing_painpoints_painpoints",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/page.tsx",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "app_page",
+      "target": "landing_finalcta_finalcta",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/page.tsx",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "id_page",
+      "target": "modals_projectsettingsmodal_projectsettingsmodal",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/projects/[id]/page.tsx",
+      "source_location": "L9",
+      "weight": 1.0
+    },
+    {
+      "source": "id_page",
+      "target": "client_clientcache_fetchwithcache",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/projects/[id]/page.tsx",
+      "source_location": "L10",
+      "weight": 1.0
+    },
+    {
+      "source": "id_page",
+      "target": "client_clientcache_invalidateclientcache",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/projects/[id]/page.tsx",
+      "source_location": "L10",
+      "weight": 1.0
+    },
+    {
+      "source": "id_page",
+      "target": "lib_utils_cn",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/projects/[id]/page.tsx",
+      "source_location": "L35",
+      "weight": 1.0
+    },
+    {
+      "source": "projects_page",
+      "target": "lib_utils_cn",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/projects/page.tsx",
+      "source_location": "L24",
+      "weight": 1.0
+    },
+    {
+      "source": "projects_page",
+      "target": "modals_projectsettingsmodal_projectsettingsmodal",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/projects/page.tsx",
+      "source_location": "L26",
+      "weight": 1.0
+    },
+    {
+      "source": "projects_page",
+      "target": "client_clientcache_fetchwithcache",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/projects/page.tsx",
+      "source_location": "L27",
+      "weight": 1.0
+    },
+    {
+      "source": "projects_page",
+      "target": "client_clientcache_invalidateclientcache",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/projects/page.tsx",
+      "source_location": "L27",
+      "weight": 1.0
+    },
+    {
+      "source": "settings_page",
+      "target": "lib_utils_cn",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/settings/page.tsx",
+      "source_location": "L20",
+      "weight": 1.0
+    },
+    {
+      "source": "ai_aicopilotwindow",
+      "target": "lib_utils_cn",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/ai/AiCopilotWindow.tsx",
+      "source_location": "L21",
+      "weight": 1.0
+    },
+    {
+      "source": "ai_aicopilotwindow",
+      "target": "client_clientcache_invalidateclientcache",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/ai/AiCopilotWindow.tsx",
+      "source_location": "L22",
+      "weight": 1.0
+    },
+    {
+      "source": "landing_features",
+      "target": "lib_utils_cn",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/landing/Features.tsx",
+      "source_location": "L13",
+      "weight": 1.0
+    },
+    {
+      "source": "landing_painpoints",
+      "target": "lib_utils_cn",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/landing/PainPoints.tsx",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "layout_floatingdock",
+      "target": "lib_utils_cn",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/layout/FloatingDock.tsx",
+      "source_location": "L22",
+      "weight": 1.0
+    },
+    {
+      "source": "modals_projectsettingsmodal",
+      "target": "lib_utils_cn",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/modals/ProjectSettingsModal.tsx",
+      "source_location": "L13",
+      "weight": 1.0
+    },
+    {
+      "source": "ui_avatar",
+      "target": "lib_utils_cn",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/ui/avatar.tsx",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "ui_badge",
+      "target": "lib_utils_cn",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/ui/badge.tsx",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "ui_button",
+      "target": "lib_utils_cn",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/ui/button.tsx",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "ui_calendar",
+      "target": "lib_utils_cn",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/ui/calendar.tsx",
+      "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "ui_card",
+      "target": "lib_utils_cn",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/ui/card.tsx",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "ui_dialog",
+      "target": "lib_utils_cn",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/ui/dialog.tsx",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "ui_dropdown_menu",
+      "target": "lib_utils_cn",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/ui/dropdown-menu.tsx",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "ui_input",
+      "target": "lib_utils_cn",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/ui/input.tsx",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "ui_scroll_area",
+      "target": "lib_utils_cn",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/ui/scroll-area.tsx",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "ui_sheet",
+      "target": "lib_utils_cn",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/ui/sheet.tsx",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "ui_table",
+      "target": "lib_utils_cn",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/ui/table.tsx",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "ui_tabs",
+      "target": "lib_utils_cn",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/ui/tabs.tsx",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "ui_textarea",
+      "target": "lib_utils_cn",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/ui/textarea.tsx",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "ui_tooltip",
+      "target": "lib_utils_cn",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/ui/tooltip.tsx",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "middleware_middleware",
+      "target": "errors_errors_badrequesterror",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/lib/api/middleware/middleware.ts",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "middleware_middleware",
+      "target": "errors_errors_validationerror",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/lib/api/middleware/middleware.ts",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "middleware_middleware",
+      "target": "errors_errors_unauthorizederror",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/lib/api/middleware/middleware.ts",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "middleware_middleware",
+      "target": "errors_errors_errorresponse",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/lib/api/middleware/middleware.ts",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "middleware_middleware",
+      "target": "errors_errors_fielderrordetail",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/lib/api/middleware/middleware.ts",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "dashboard_page_handlecreateproject",
+      "target": "client_clientcache_invalidateclientcache",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/dashboard/page.tsx",
+      "source_location": "L142",
+      "weight": 1.0
+    },
+    {
+      "source": "id_page_handleaddtask",
+      "target": "client_clientcache_invalidateclientcache",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/projects/[id]/page.tsx",
+      "source_location": "L252",
+      "weight": 1.0
+    },
+    {
+      "source": "id_page_handlemovetask",
+      "target": "client_clientcache_invalidateclientcache",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/projects/[id]/page.tsx",
+      "source_location": "L277",
+      "weight": 1.0
+    },
+    {
+      "source": "id_page_handleupdatetask",
+      "target": "client_clientcache_invalidateclientcache",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/projects/[id]/page.tsx",
+      "source_location": "L313",
+      "weight": 1.0
+    },
+    {
+      "source": "id_page_handledeletetask",
+      "target": "client_clientcache_invalidateclientcache",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/projects/[id]/page.tsx",
+      "source_location": "L332",
+      "weight": 1.0
+    },
+    {
+      "source": "id_page_handlecreatecredential",
+      "target": "client_clientcache_invalidateclientcache",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/projects/[id]/page.tsx",
+      "source_location": "L386",
+      "weight": 1.0
+    },
+    {
+      "source": "id_page_handledeletecredential",
+      "target": "client_clientcache_invalidateclientcache",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/projects/[id]/page.tsx",
+      "source_location": "L403",
+      "weight": 1.0
+    },
+    {
+      "source": "id_page_handleaddnewnote",
+      "target": "client_clientcache_invalidateclientcache",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/projects/[id]/page.tsx",
+      "source_location": "L449",
+      "weight": 1.0
+    },
+    {
+      "source": "id_page_handledeletenote",
+      "target": "client_clientcache_invalidateclientcache",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/projects/[id]/page.tsx",
+      "source_location": "L467",
+      "weight": 1.0
+    },
+    {
+      "source": "projects_page_handleaddproject",
+      "target": "client_clientcache_invalidateclientcache",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/projects/page.tsx",
+      "source_location": "L179",
+      "weight": 1.0
+    },
+    {
+      "source": "ai_aicopilotwindow_handlesend",
+      "target": "client_clientcache_invalidateclientcache",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/ai/AiCopilotWindow.tsx",
+      "source_location": "L258",
+      "weight": 1.0
+    },
+    {
+      "source": "ui_badge_badge",
+      "target": "lib_utils_cn",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/ui/badge.tsx",
+      "source_location": "L40",
+      "weight": 1.0
+    },
+    {
+      "source": "errors_errors_badrequesterror",
+      "target": "errors_errors_apperror",
+      "relation": "inherits",
+      "context": "type",
+      "confidence": "EXTRACTED",
+      "source_file": "src/lib/api/errors/errors.ts",
+      "source_location": "L23",
+      "weight": 1.0
+    },
+    {
+      "source": "errors_errors_unauthorizederror",
+      "target": "errors_errors_apperror",
+      "relation": "inherits",
+      "context": "type",
+      "confidence": "EXTRACTED",
+      "source_file": "src/lib/api/errors/errors.ts",
+      "source_location": "L29",
+      "weight": 1.0
+    },
+    {
+      "source": "errors_errors_forbiddenerror",
+      "target": "errors_errors_apperror",
+      "relation": "inherits",
+      "context": "type",
+      "confidence": "EXTRACTED",
+      "source_file": "src/lib/api/errors/errors.ts",
+      "source_location": "L35",
+      "weight": 1.0
+    },
+    {
+      "source": "errors_errors_notfounderror",
+      "target": "errors_errors_apperror",
+      "relation": "inherits",
+      "context": "type",
+      "confidence": "EXTRACTED",
+      "source_file": "src/lib/api/errors/errors.ts",
+      "source_location": "L41",
+      "weight": 1.0
+    },
+    {
+      "source": "errors_errors_conflicterror",
+      "target": "errors_errors_apperror",
+      "relation": "inherits",
+      "context": "type",
+      "confidence": "EXTRACTED",
+      "source_file": "src/lib/api/errors/errors.ts",
+      "source_location": "L47",
+      "weight": 1.0
+    },
+    {
+      "source": "errors_errors_validationerror",
+      "target": "errors_errors_apperror",
+      "relation": "inherits",
+      "context": "type",
+      "confidence": "EXTRACTED",
+      "source_file": "src/lib/api/errors/errors.ts",
+      "source_location": "L53",
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

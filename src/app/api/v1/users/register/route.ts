@@ -8,15 +8,19 @@ import { db } from '@/lib/api/db/db';
 export const POST = apiHandler(async (req: NextRequest) => {
   const body = await validateBody(req, registerUserSchema);
 
-  const existingUser = await db.getUserByEmail(body.email);
+  const cleanEmail = body.email.trim().toLowerCase();
+  const cleanPassword = body.password.trim();
+  const cleanName = body.name.trim();
+
+  const existingUser = await db.getUserByEmail(cleanEmail);
   if (existingUser) {
-    throw new ConflictError(`User with email '${body.email}' already exists`);
+    throw new ConflictError(`User with email '${cleanEmail}' already exists`);
   }
 
-  const passwordHash = await bcrypt.hash(body.password, 6);
+  const passwordHash = await bcrypt.hash(cleanPassword, 6);
   const newUser = await db.createUser({
-    name: body.name,
-    email: body.email,
+    name: cleanName,
+    email: cleanEmail,
     passwordHash,
     role: body.role,
   });

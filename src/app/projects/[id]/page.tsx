@@ -194,9 +194,18 @@ export default function ProjectDetailsPage() {
     fetchCredentials();
     fetchNotes();
 
-    const handleUpdate = () => fetchProjectAndTasks(true);
-    const handleCredsUpdate = () => fetchCredentials(true);
-    const handleNotesUpdate = () => fetchNotes(true);
+    const handleUpdate = () => {
+      invalidateClientCache();
+      fetchProjectAndTasks(true);
+    };
+    const handleCredsUpdate = () => {
+      invalidateClientCache();
+      fetchCredentials(true);
+    };
+    const handleNotesUpdate = () => {
+      invalidateClientCache();
+      fetchNotes(true);
+    };
 
     window.addEventListener('projectsUpdated', handleUpdate);
     window.addEventListener('tasksUpdated', handleUpdate);

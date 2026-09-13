@@ -1,0 +1,268 @@
+{
+  "communities": {
+    "0": [
+      "errors_errors_apperror",
+      "errors_errors_badrequesterror",
+      "errors_errors_conflicterror",
+      "errors_errors_forbiddenerror",
+      "errors_errors_notfounderror",
+      "errors_errors_unauthorizederror",
+      "errors_errors_validationerror"
+    ],
+    "1": [
+      "app_layout_rootlayout"
+    ],
+    "2": [
+      "app_page_homepage"
+    ],
+    "3": [
+      "auth_authguard_authprovider"
+    ],
+    "4": [
+      "chat_route_post"
+    ],
+    "5": [
+      "client_clientcache_fetchwithcache"
+    ],
+    "6": [
+      "client_clientcache_invalidateclientcache"
+    ],
+    "7": [
+      "db_db_credentialfield"
+    ],
+    "8": [
+      "db_db_credentialrecord"
+    ],
+    "9": [
+      "db_db_noterecord"
+    ],
+    "10": [
+      "db_db_notesection"
+    ],
+    "11": [
+      "db_db_projectrecord"
+    ],
+    "12": [
+      "db_db_projectwithstats"
+    ],
+    "13": [
+      "db_db_safeuserrecord"
+    ],
+    "14": [
+      "db_db_taskrecord"
+    ],
+    "15": [
+      "db_db_taskwithrelations"
+    ],
+    "16": [
+      "db_db_userrecord"
+    ],
+    "17": [
+      "docs_route_get"
+    ],
+    "18": [
+      "errors_errors_errorresponse"
+    ],
+    "19": [
+      "errors_errors_fielderrordetail"
+    ],
+    "20": [
+      "errors_errors_successresponse"
+    ],
+    "21": [
+      "landing_features_features"
+    ],
+    "22": [
+      "landing_finalcta_finalcta"
+    ],
+    "23": [
+      "landing_hero_hero"
+    ],
+    "24": [
+      "landing_painpoints_painpoints"
+    ],
+    "25": [
+      "layout_floatingdock_floatingdock"
+    ],
+    "26": [
+      "layout_publicheader_publicheader"
+    ],
+    "27": [
+      "lib_utils_cn"
+    ],
+    "28": [
+      "login_page_loginpage"
+    ],
+    "29": [
+      "middleware_middleware_apihandler"
+    ],
+    "30": [
+      "middleware_middleware_generatejwttoken"
+    ],
+    "31": [
+      "middleware_middleware_getauthuseroptional"
+    ],
+    "32": [
+      "middleware_middleware_jwtuserpayload"
+    ],
+    "33": [
+      "middleware_middleware_parsezoderror"
+    ],
+    "34": [
+      "middleware_middleware_validatebody"
+    ],
+    "35": [
+      "middleware_middleware_validatequery"
+    ],
+    "36": [
+      "middleware_middleware_verifyauthtoken"
+    ],
+    "37": [
+      "modals_projectsettingsmodal_projectsettingsdata"
+    ],
+    "38": [
+      "modals_projectsettingsmodal_projectsettingsmodal"
+    ],
+    "39": [
+      "modals_projectsettingsmodal_projectsettingsmodalprops"
+    ],
+    "40": [
+      "signup_page_signuppage"
+    ],
+    "41": [
+      "validators_project_schema_createprojectinput"
+    ],
+    "42": [
+      "validators_project_schema_updateprojectinput"
+    ],
+    "43": [
+      "validators_task_schema_createtaskinput"
+    ],
+    "44": [
+      "validators_task_schema_updatetaskinput"
+    ],
+    "45": [
+      "validators_task_schema_updatetaskstatusinput"
+    ],
+    "46": [
+      "validators_user_schema_loginuserinput"
+    ],
+    "47": [
+      "validators_user_schema_registeruserinput"
+    ],
+    "48": [
+      "validators_user_schema_updateuserinput"
+    ]
+  },
+  "cohesion": {
+    "0": 0.2857142857142857,
+    "1": 1.0,
+    "2": 1.0,
+    "3": 1.0,
+    "4": 1.0,
+    "5": 1.0,
+    "6": 1.0,
+    "7": 1.0,
+    "8": 1.0,
+    "9": 1.0,
+    "10": 1.0,
+    "11": 1.0,
+    "12": 1.0,
+    "13": 1.0,
+    "14": 1.0,
+    "15": 1.0,
+    "16": 1.0,
+    "17": 1.0,
+    "18": 1.0,
+    "19": 1.0,
+    "20": 1.0,
+    "21": 1.0,
+    "22": 1.0,
+    "23": 1.0,
+    "24": 1.0,
+    "25": 1.0,
+    "26": 1.0,
+    "27": 1.0,
+    "28": 1.0,
+    "29": 1.0,
+    "30": 1.0,
+    "31": 1.0,
+    "32": 1.0,
+    "33": 1.0,
+    "34": 1.0,
+    "35": 1.0,
+    "36": 1.0,
+    "37": 1.0,
+    "38": 1.0,
+    "39": 1.0,
+    "40": 1.0,
+    "41": 1.0,
+    "42": 1.0,
+    "43": 1.0,
+    "44": 1.0,
+    "45": 1.0,
+    "46": 1.0,
+    "47": 1.0,
+    "48": 1.0
+  },
+  "gods": [
+    {
+      "id": "errors_errors_apperror",
+      "label": "AppError",
+      "degree": 6
+    },
+    {
+      "id": "errors_errors_badrequesterror",
+      "label": "BadRequestError",
+      "degree": 1
+    },
+    {
+      "id": "errors_errors_unauthorizederror",
+      "label": "UnauthorizedError",
+      "degree": 1
+    },
+    {
+      "id": "errors_errors_forbiddenerror",
+      "label": "ForbiddenError",
+      "degree": 1
+    },
+    {
+      "id": "errors_errors_notfounderror",
+      "label": "NotFoundError",
+      "degree": 1
+    },
+    {
+      "id": "errors_errors_conflicterror",
+      "label": "ConflictError",
+      "degree": 1
+    },
+    {
+      "id": "errors_errors_validationerror",
+      "label": "ValidationError",
+      "degree": 1
+    },
+    {
+      "id": "docs_route_get",
+      "label": "GET",
+      "degree": 0
+    },
+    {
+      "id": "chat_route_post",
+      "label": "POST",
+      "degree": 0
+    },
+    {
+      "id": "app_layout_rootlayout",
+      "label": "RootLayout",
+      "degree": 0
+    }
+  ],
+  "surprises": [],
+  "questions": [
+    {
+      "type": "isolated_nodes",
+      "question": "What connects `GET`, `POST`, `RootLayout` to the rest of the system?",
+      "why": "54 weakly-connected nodes found - possible documentation gaps or missing edges."
+    }
+  ]
+}
