@@ -19,6 +19,7 @@ import {
   FileText
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { invalidateClientCache } from '@/lib/client/clientCache';
 
 interface ImportedTask {
   id: string;
@@ -254,12 +255,15 @@ export function AiCopilotWindow({ isOpen, onClose }: AiCopilotWindowProps) {
         const createdItem = data.data.item;
 
         if (createdType === 'credential' || updatedType === 'credential') {
+          invalidateClientCache();
           window.dispatchEvent(new Event('credentialsUpdated'));
         } else if (createdType === 'note' || updatedType === 'note') {
+          invalidateClientCache();
           window.dispatchEvent(new Event('notesUpdated'));
         }
 
         if (updatedType === 'task' || updatedType === 'project' || data.data.actionExecuted) {
+          invalidateClientCache();
           window.dispatchEvent(new Event('projectsUpdated'));
           window.dispatchEvent(new Event('tasksUpdated'));
           window.dispatchEvent(new Event('taskUpdated'));

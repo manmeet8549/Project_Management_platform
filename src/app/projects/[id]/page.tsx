@@ -27,7 +27,6 @@ import {
   ChevronDown,
   ShieldCheck,
   Lock,
-  Edit3,
   Trash2,
   SlidersHorizontal,
   Eye,
@@ -120,7 +119,7 @@ export default function ProjectDetailsPage() {
           projData = data;
           setProjectDetail(data);
         }, { forceRefresh }),
-        fetchWithCache<RawTaskApiDetail[]>('/api/v1/tasks', 'tasks_list', (data) => {
+        fetchWithCache<RawTaskApiDetail[]>(`/api/v1/tasks?projectId=${rawProjectId}`, `tasks_list_${rawProjectId}`, (data) => {
           tasksList = data;
         }, { forceRefresh }),
       ]);
@@ -1074,60 +1073,76 @@ export default function ProjectDetailsPage() {
                 
                 <div className="text-center">
                   <div className="text-[10px] font-black uppercase text-zinc-500">Total Notes</div>
-                  <div className="text-xl font-black text-[#7C3AED] mt-0.5">6</div>
+                  <div className="text-xl font-black text-[#7C3AED] mt-0.5">{notes.length}</div>
                 </div>
 
                 <div className="h-8 w-px bg-zinc-200" />
 
                 <div className="text-center">
                   <div className="text-[10px] font-black uppercase text-zinc-500">Last Updated</div>
-                  <div className="text-xs font-black text-black mt-1">May 22, 2025</div>
+                  <div className="text-xs font-black text-black mt-1">{notes[0]?.date || 'N/A'}</div>
                 </div>
               </div>
             </div>
 
-            <div className="lg:col-span-7 bg-white border-3 border-black p-6 sm:p-8 rounded-2xl shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] space-y-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-200 pb-5">
+            {selectedNote ? (
+              <div className="lg:col-span-7 bg-white border-3 border-black p-6 sm:p-8 rounded-2xl shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-200 pb-5">
+                  <div>
+                    <h2 className="text-2xl sm:text-3xl font-black text-black tracking-tight">
+                      {selectedNote.title}
+                    </h2>
+                    <div className="text-xs font-bold text-zinc-400 mt-1">
+                      Created on {selectedNote.date} • {selectedNote.updated}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2.5">
+                    <button 
+                      onClick={() => handleDeleteNote(selectedNote.id)}
+                      className="bg-white hover:bg-red-50 text-[#B91C1C] font-extrabold text-xs px-3.5 py-2 rounded-lg border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5 stroke-[2.5]" />
+                      <span>Delete</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="bg-[#FAF8F5] border-2 border-black/10 rounded-xl p-6 space-y-6 text-sm font-bold text-zinc-800">
+                  {selectedNote.sections.map((section, idx) => (
+                    <div key={idx} className="space-y-3 border-b border-zinc-200/60 last:border-0 pb-5 last:pb-0">
+                      <h3 className="font-black text-base text-black">{section.heading}</h3>
+                      <ul className="space-y-2 pl-4 list-disc marker:text-black">
+                        {section.items.map((item, itemIdx) => (
+                          <li key={itemIdx} className="leading-relaxed text-zinc-700">
+                            {item}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="lg:col-span-7 bg-white border-3 border-black p-8 sm:p-12 rounded-2xl shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] flex flex-col items-center justify-center text-center space-y-4">
+                <div className="w-14 h-14 bg-[#FFFBEB] border-2 border-black rounded-2xl flex items-center justify-center shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
+                  <FileText className="w-7 h-7 text-[#D97706] stroke-[2.5]" />
+                </div>
                 <div>
-                  <h2 className="text-2xl sm:text-3xl font-black text-black tracking-tight">
-                    {selectedNote.title}
-                  </h2>
-                  <div className="text-xs font-bold text-zinc-400 mt-1">
-                    Created on {selectedNote.date} • {selectedNote.updated}
-                  </div>
+                  <h3 className="font-black text-lg text-black uppercase tracking-wider">No Notes Created</h3>
+                  <p className="text-xs font-bold text-zinc-500 max-w-sm mt-1">
+                    Create a new note using the button on the left or ask AI Copilot to record architecture requirements!
+                  </p>
                 </div>
-
-                <div className="flex items-center gap-2.5">
-                  <button className="bg-white hover:bg-zinc-50 text-black font-extrabold text-xs px-3.5 py-2 rounded-lg border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all flex items-center gap-1.5 cursor-pointer">
-                    <Edit3 className="w-3.5 h-3.5 stroke-[2.5]" />
-                    <span>Edit</span>
-                  </button>
-
-                  <button 
-                    onClick={() => handleDeleteNote(selectedNote.id)}
-                    className="bg-white hover:bg-red-50 text-[#B91C1C] font-extrabold text-xs px-3.5 py-2 rounded-lg border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <Trash2 className="w-3.5 h-3.5 stroke-[2.5]" />
-                    <span>Delete</span>
-                  </button>
-                </div>
+                <button
+                  onClick={handleAddNewNote}
+                  className="bg-[#FFD93D] hover:bg-[#FACC15] text-black font-black text-xs px-5 py-2.5 rounded-xl border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all flex items-center gap-2 cursor-pointer"
+                >
+                  <Plus className="w-4 h-4 stroke-[3]" />
+                  <span>Add New Note</span>
+                </button>
               </div>
-
-              <div className="bg-[#FAF8F5] border-2 border-black/10 rounded-xl p-6 space-y-6 text-sm font-bold text-zinc-800">
-                {selectedNote.sections.map((section, idx) => (
-                  <div key={idx} className="space-y-3 border-b border-zinc-200/60 last:border-0 pb-5 last:pb-0">
-                    <h3 className="font-black text-base text-black">{section.heading}</h3>
-                    <ul className="space-y-2 pl-4 list-disc marker:text-black">
-                      {section.items.map((item, itemIdx) => (
-                        <li key={itemIdx} className="leading-relaxed text-zinc-700">
-                          {item}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
-              </div>
-            </div>
+            )}
           </div>
         )}
 

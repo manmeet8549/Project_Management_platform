@@ -219,28 +219,84 @@ You MUST respond ONLY with a raw JSON object (no markdown, no conversational tex
           tasks: createdTasks,
         },
       });
-    } else if (action === 'add_credential' || (action === 'chat' && messages.some(m => m.role === 'user' && /(add|create|save|store).*(credential|api key|secret|token|password)/i.test(m.content)))) {
+    }
+
+    // Resolve active project context for note/credential creation or general workspace chat
+    const userText = messages[messages.length - 1]?.content || '';
+    const lowerUserText = userText.toLowerCase();
+
+    let targetProject = null;
+    if (currentProjectId) {
+      targetProject = await db.getProjectById(currentProjectId);
+    }
+    if (!targetProject) {
+      const allProjects = await db.getAllProjects({ ownerId: authUser?.userId });
+      if (allProjects.length > 0) targetProject = allProjects[0];
+    }
+
+    // Check Latest User Message Intent
+    const isCredentialIntent = action === 'add_credential' || (
+      action === 'chat' && (
+        /(add|create|save|store|make|record|put|insert|keep|generate)\s+(?:a\s+|the\s+)?(?:project\s+)?(credential|credentials|api key|api_key|secret|secrets|token|tokens|password|passwords|key|keys|env var|env variable)/i.test(userText) ||
+        /credential[s]?[:\s]+/i.test(userText) ||
+        /api[ _]key[s]?[:\s]+/i.test(userText) ||
+        /add\s+to\s+(?:project\s+)?credentials/i.test(userText)
+      )
+    );
+
+    const isNoteIntent = action === 'add_note' || (
+      !isCredentialIntent && action === 'chat' && (
+        /(add|create|save|store|make|write|record|generate|put|insert|keep)\s+(?:a\s+|the\s+)?(?:project\s+)?(note|notes|document|documentation|requirement|requirements|checklist|spec|specs|specification|specifications)/i.test(userText) ||
+        /add\s+to\s+(?:project\s+)?notes/i.test(userText) ||
+        /note[s]?[:\s]+/i.test(userText)
+      )
+    );
+
+    if (isCredentialIntent) {
       // AI Credential Creation mode
-      const userText = messages[messages.length - 1]?.content || '';
-      
       const systemMessage: ChatMessage = {
         role: 'system',
         content: `You are an AI Security & Credential Extractor.
-Extract title, category, and key-value fields from user text.
-Category MUST be one of: 'Database & Auth', 'Payment API', 'AI Model Service', 'Cloud Infrastructure', or 'Third-Party API'.
-Format strictly as JSON:
+Extract title, category, and key-value fields from the user input.
+Category MUST be one of: 'Database & Auth', 'Payment API', 'AI Model Service', 'Cloud Infrastructure', 'Third-Party API', 'Backend', or 'Development'.
+You MUST respond ONLY with a raw JSON object (no markdown, no conversation) in this format:
 {
   "title": "Clear Credential Title",
   "category": "Database & Auth",
   "fields": [
-    { "name": "Key Name", "value": "Value or Key" }
+    { "name": "Field Name", "value": "Extracted Key or Secret" }
   ]
 }`,
       };
 
-      let title = 'New Service Credentials';
+      let title = 'Project Credentials & API Keys';
       let category = 'Database & Auth';
-      let fields = [{ name: 'API Key', value: 'sk_live_example_key_12345' }];
+      let fields: Array<{ name: string; value: string }> = [];
+
+      // Smart local parsing helper to extract Key = Value patterns from prompt
+      const lines = userText.split(/[\n,;]+/);
+      for (const line of lines) {
+        const kvMatch = line.match(/^\s*([a-zA-Z0-9\s_\-\.]+)\s*[:=]\s*(.+)$/);
+        if (kvMatch) {
+          const keyName = kvMatch[1].trim();
+          const valName = kvMatch[2].trim();
+          if (!/^(add|create|save|make|note|credential)/i.test(keyName) && valName.length > 0) {
+            fields.push({ name: keyName, value: valName });
+          }
+        }
+      }
+
+      if (lowerUserText.includes('stripe') || lowerUserText.includes('payment') || lowerUserText.includes('pay')) {
+        category = 'Payment API';
+      } else if (lowerUserText.includes('nvidia') || lowerUserText.includes('openai') || lowerUserText.includes('ai') || lowerUserText.includes('model')) {
+        category = 'AI Model Service';
+      } else if (lowerUserText.includes('aws') || lowerUserText.includes('vercel') || lowerUserText.includes('cloud') || lowerUserText.includes('deploy')) {
+        category = 'Cloud Infrastructure';
+      } else if (lowerUserText.includes('db') || lowerUserText.includes('database') || lowerUserText.includes('postgres') || lowerUserText.includes('supabase') || lowerUserText.includes('auth')) {
+        category = 'Database & Auth';
+      } else {
+        category = 'Third-Party API';
+      }
 
       try {
         const payload = {
@@ -249,11 +305,17 @@ Format strictly as JSON:
           temperature: 0.2,
           max_tokens: 500,
         };
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000);
+
         const response = await fetch(NVIDIA_API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${NVIDIA_API_KEY}` },
           body: JSON.stringify(payload),
+          signal: controller.signal,
         });
+        clearTimeout(timeoutId);
+
         if (response.ok) {
           const resData = await response.json();
           const raw = resData.choices?.[0]?.message?.content || '';
@@ -263,16 +325,28 @@ Format strictly as JSON:
           if (Array.isArray(parsed.fields) && parsed.fields.length > 0) fields = parsed.fields;
         }
       } catch (err) {
-        console.warn('AI Credential extraction fallback used:', err);
-        const titleMatch = userText.match(/(?:credential|key|secret)\s*(?:for|=|:)?\s*([a-zA-Z0-9\s_\-]+)/i);
-        if (titleMatch?.[1]) title = titleMatch[1].trim() + ' Credentials';
+        console.warn('AI Credential extraction API fallback used:', err);
+      }
+
+      if (fields.length === 0) {
+        const keyMatch = userText.match(/(?:key|secret|token|password)\s*[:=]?\s*([a-zA-Z0-9_\-\.]+)/i);
+        fields = [
+          { name: 'API Key / Secret', value: keyMatch?.[1] || 'sk_live_' + Date.now().toString(36) }
+        ];
+      }
+
+      const titleMatch = userText.match(/(?:credential|key|secret|for)\s*(?:for|=|:)?\s*([a-zA-Z0-9\s_\-]+)/i);
+      if (titleMatch?.[1] && title === 'Project Credentials & API Keys') {
+        const cleanTitle = titleMatch[1].replace(/^(a|the|my|new)\s+/i, '').trim();
+        if (cleanTitle.length > 2) title = cleanTitle.charAt(0).toUpperCase() + cleanTitle.slice(1) + ' Credentials';
       }
 
       const createdCred = await db.createCredential({
-        projectId: currentProjectId || undefined,
+        projectId: targetProject?.id || currentProjectId || undefined,
+        userId: authUser?.userId || undefined,
         title,
         category,
-        categoryBg: category.includes('Auth') ? 'bg-[#DCFCE7] text-[#15803D]' : 'bg-[#F3E8FF] text-[#7C3AED]',
+        categoryBg: category.includes('Auth') ? 'bg-[#DCFCE7] text-[#15803D]' : category.includes('Payment') ? 'bg-[#FEF3C7] text-[#D97706]' : 'bg-[#F3E8FF] text-[#7C3AED]',
         addedOn: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
         fields,
       });
@@ -280,38 +354,43 @@ Format strictly as JSON:
       return NextResponse.json({
         success: true,
         data: {
-          reply: `I generated and saved the **${createdCred.title}** credential record to your project workspace!`,
+          reply: `I generated and saved the **${createdCred.title}** credential record (${createdCred.fields.length} fields) to your project workspace!`,
           createdType: 'credential',
           item: createdCred,
         },
       });
-    } else if (action === 'add_note' || (action === 'chat' && messages.some(m => m.role === 'user' && /(add|create|save|store).*(note|document|requirement|checklist)/i.test(m.content)))) {
+    } else if (isNoteIntent) {
       // AI Note Creation mode
-      const userText = messages[messages.length - 1]?.content || '';
-
       const systemMessage: ChatMessage = {
         role: 'system',
         content: `You are an AI Product Note & Documentation Generator.
-Extract or synthesize a title, concise summary excerpt, and structured sections from user input.
-Format strictly as JSON:
+Extract and synthesize a clear title, a concise 1-sentence excerpt summary, and structured sections (with numbered headings and list items) from user input.
+You MUST respond ONLY with a raw JSON object (no markdown, no conversational text) in this format:
 {
   "title": "Clear Note Title",
-  "excerpt": "1-sentence summary excerpt",
+  "excerpt": "Concise 1-sentence summary excerpt",
   "sections": [
     {
-      "heading": "1. Section Heading",
+      "heading": "1. Key Specifications & Requirements",
       "items": ["Point 1", "Point 2"]
     }
   ]
 }`,
       };
 
-      let title = 'Project Architecture & Notes';
-      let excerpt = 'Structured technical requirements and notes generated via AI Copilot.';
+      let title = 'Project Requirements & Notes';
+      let excerpt = userText.slice(0, 120) || 'Technical specifications and architectural notes.';
+      
+      // Local fallback section parsing
+      const rawPoints = userText
+        .split(/[\n;]+/)
+        .map((p: string) => p.replace(/^[-*•0-9.]+\s*/, '').trim())
+        .filter((p: string) => p.length > 3 && !/^(make|create|add|save|write)\s+(notes?|documents?)/i.test(p));
+
       let sections = [
         {
-          heading: '1. Overview',
-          items: [userText.slice(0, 150) || 'Verified system requirements and design specs.'],
+          heading: '1. Architecture & Feature Notes',
+          items: rawPoints.length > 0 ? rawPoints : [userText.slice(0, 150) || 'Verified system requirements and design specs.'],
         },
       ];
 
@@ -322,11 +401,17 @@ Format strictly as JSON:
           temperature: 0.3,
           max_tokens: 600,
         };
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000);
+
         const response = await fetch(NVIDIA_API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${NVIDIA_API_KEY}` },
           body: JSON.stringify(payload),
+          signal: controller.signal,
         });
+        clearTimeout(timeoutId);
+
         if (response.ok) {
           const resData = await response.json();
           const raw = resData.choices?.[0]?.message?.content || '';
@@ -336,11 +421,18 @@ Format strictly as JSON:
           if (Array.isArray(parsed.sections) && parsed.sections.length > 0) sections = parsed.sections;
         }
       } catch (err) {
-        console.warn('AI Note extraction fallback used:', err);
+        console.warn('AI Note extraction API fallback used:', err);
+      }
+
+      const noteTitleMatch = userText.match(/(?:note|notes|about|for)[:\s]+["']?([^"'\n]+?)["']?$/i);
+      if (noteTitleMatch?.[1] && title === 'Project Requirements & Notes') {
+        const cleanT = noteTitleMatch[1].replace(/^(a|the|my|new)\s+/i, '').trim();
+        if (cleanT.length > 3) title = cleanT.charAt(0).toUpperCase() + cleanT.slice(1);
       }
 
       const createdNote = await db.createNote({
-        projectId: currentProjectId || undefined,
+        projectId: targetProject?.id || currentProjectId || undefined,
+        userId: authUser?.userId || undefined,
         title,
         excerpt,
         date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
@@ -357,6 +449,7 @@ Format strictly as JSON:
       });
     } else {
       // Full Project Context Aware AI Chat Assistant
+
       const userText = messages[messages.length - 1]?.content || '';
 
       // 1. Fetch live workspace data for target project

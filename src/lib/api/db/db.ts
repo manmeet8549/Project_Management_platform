@@ -347,19 +347,10 @@ class DatabaseStore {
     if (this.isPostgresConfigured()) {
       try {
         const targetId = this.aliasMap.get(id) || id;
-        let user = (await prisma.user.findUnique({
+        const user = (await prisma.user.findUnique({
           where: { id: targetId },
           select: { id: true, name: true, email: true, role: true, createdAt: true, updatedAt: true },
         })) as unknown as DbUserRow | null;
-
-        if (!user && (id.startsWith('usr-') || id === '1')) {
-          user = (await prisma.user.findFirst({
-            select: { id: true, name: true, email: true, role: true, createdAt: true, updatedAt: true },
-          })) as unknown as DbUserRow | null;
-          if (user) {
-            this.aliasMap.set(id, user.id);
-          }
-        }
 
         if (!user) return null;
         const res: SafeUserRecord = {
@@ -377,7 +368,7 @@ class DatabaseStore {
       }
     }
 
-    const user = this.memoryUsers.find(u => u.id === id) || this.memoryUsers[0];
+    const user = this.memoryUsers.find(u => u.id === id);
     if (!user) return null;
     const res = sanitizeUser(user);
     apiCache.set(cacheKey, res, 10, ['users']);
@@ -587,19 +578,10 @@ class DatabaseStore {
     if (this.isPostgresConfigured()) {
       try {
         const targetId = this.aliasMap.get(id) || id;
-        let project = (await prisma.project.findUnique({
+        const project = (await prisma.project.findUnique({
           where: { id: targetId },
           select: { id: true, title: true, description: true, category: true, status: true, dueDate: true, ownerId: true, createdAt: true, updatedAt: true, tasks: { select: { id: true, status: true } } },
         })) as unknown as DbProjectRow | null;
-
-        if (!project && (id.startsWith('proj-') || id === '1')) {
-          project = (await prisma.project.findFirst({
-            select: { id: true, title: true, description: true, category: true, status: true, dueDate: true, ownerId: true, createdAt: true, updatedAt: true, tasks: { select: { id: true, status: true } } },
-          })) as unknown as DbProjectRow | null;
-          if (project) {
-            this.aliasMap.set(id, project.id);
-          }
-        }
 
         if (!project) return null;
         const projectTasks = project.tasks || [];
@@ -650,20 +632,25 @@ class DatabaseStore {
     if (this.isPostgresConfigured()) {
       try {
         let ownerId = data.ownerId ? (this.aliasMap.get(data.ownerId) || data.ownerId) : undefined;
-        if (!ownerId || ownerId.startsWith('usr-') || ownerId === '1') {
-          if (!this.cachedDefaultUserId) {
+        if (ownerId) {
+          const userExists = await prisma.user.findUnique({ where: { id: ownerId }, select: { id: true } });
+          if (!userExists) {
             const firstUser = await prisma.user.findFirst({ select: { id: true } });
-            if (firstUser) {
-              this.cachedDefaultUserId = firstUser.id;
-            } else {
-              const newUser = await prisma.user.create({
-                data: { name: 'Manmeet Singh', email: `admin.${Date.now()}@example.com`, passwordHash: defaultPasswordHash, role: 'ADMIN' },
-                select: { id: true },
-              });
-              this.cachedDefaultUserId = newUser.id;
-            }
+            ownerId = firstUser ? firstUser.id : undefined;
           }
-          ownerId = this.cachedDefaultUserId || undefined;
+        }
+
+        if (!ownerId) {
+          const firstUser = await prisma.user.findFirst({ select: { id: true } });
+          if (firstUser) {
+            ownerId = firstUser.id;
+          } else {
+            const newUser = await prisma.user.create({
+              data: { name: 'Manmeet Singh', email: `admin.${Date.now()}@example.com`, passwordHash: defaultPasswordHash, role: 'ADMIN' },
+              select: { id: true },
+            });
+            ownerId = newUser.id;
+          }
         }
 
         const mappedStatus: ProjectStatusEnum = (data.status === 'in-progress' ? 'in_progress' : data.status === 'on-hold' ? 'on_hold' : data.status) as ProjectStatusEnum;
@@ -929,7 +916,7 @@ class DatabaseStore {
     if (this.isPostgresConfigured()) {
       try {
         const targetId = this.aliasMap.get(id) || id;
-        let task = (await prisma.task.findUnique({
+        const task = (await prisma.task.findUnique({
           where: { id: targetId },
           select: {
             id: true,
@@ -946,28 +933,6 @@ class DatabaseStore {
             assignee: { select: { id: true, name: true, email: true } },
           },
         })) as unknown as DbTaskRow | null;
-
-        if (!task && (id.startsWith('tsk-') || id === '1')) {
-          task = (await prisma.task.findFirst({
-            select: {
-              id: true,
-              title: true,
-              description: true,
-              status: true,
-              priority: true,
-              projectId: true,
-              assigneeId: true,
-              dueDate: true,
-              createdAt: true,
-              updatedAt: true,
-              project: { select: { id: true, title: true, category: true } },
-              assignee: { select: { id: true, name: true, email: true } },
-            },
-          })) as unknown as DbTaskRow | null;
-          if (task) {
-            this.aliasMap.set(id, task.id);
-          }
-        }
 
         if (!task) return null;
         const res: TaskWithRelations = {
@@ -1011,33 +976,33 @@ class DatabaseStore {
     if (this.isPostgresConfigured()) {
       try {
         let projectId = data.projectId ? (this.aliasMap.get(data.projectId) || data.projectId) : undefined;
-        if (!projectId || projectId.startsWith('proj-') || projectId === '1') {
-          if (!this.cachedDefaultProjectId) {
+        if (projectId) {
+          const projExists = await prisma.project.findUnique({ where: { id: projectId }, select: { id: true } });
+          if (!projExists) {
             const firstProj = await prisma.project.findFirst({ select: { id: true } });
-            if (firstProj) {
-              this.cachedDefaultProjectId = firstProj.id;
-            } else {
-              if (!this.cachedDefaultUserId) {
-                const u = await prisma.user.findFirst({ select: { id: true } });
-                this.cachedDefaultUserId = u ? u.id : (await this.createUser({ name: 'Admin', email: `admin.${Date.now()}@example.com`, passwordHash: 'hash' })).id;
-              }
-              const p = await prisma.project.create({
-                data: { title: 'General Workspace', category: 'General', status: 'in_progress', ownerId: this.cachedDefaultUserId },
-                select: { id: true },
-              });
-              this.cachedDefaultProjectId = p.id;
-            }
+            projectId = firstProj ? firstProj.id : undefined;
           }
-          projectId = this.cachedDefaultProjectId || undefined;
+        }
+
+        if (!projectId) {
+          const firstProj = await prisma.project.findFirst({ select: { id: true } });
+          if (firstProj) {
+            projectId = firstProj.id;
+          } else {
+            const u = await prisma.user.findFirst({ select: { id: true } });
+            const ownerId = u ? u.id : (await this.createUser({ name: 'Admin', email: `admin.${Date.now()}@example.com`, passwordHash: 'hash' })).id;
+            const p = await prisma.project.create({
+              data: { title: 'General Workspace', category: 'General', status: 'in_progress', ownerId },
+              select: { id: true },
+            });
+            projectId = p.id;
+          }
         }
 
         let assigneeId = data.assigneeId ? (this.aliasMap.get(data.assigneeId) || data.assigneeId) : null;
-        if (assigneeId && (assigneeId.startsWith('usr-') || assigneeId === '1')) {
-          if (!this.cachedDefaultUserId) {
-            const u = await prisma.user.findFirst({ select: { id: true } });
-            if (u) this.cachedDefaultUserId = u.id;
-          }
-          assigneeId = this.cachedDefaultUserId;
+        if (assigneeId) {
+          const uExists = await prisma.user.findUnique({ where: { id: assigneeId }, select: { id: true } });
+          if (!uExists) assigneeId = null;
         }
 
         const mappedStatus: TaskStatusEnum = (data.status === 'in-progress' ? 'in_progress' : data.status) as TaskStatusEnum;
