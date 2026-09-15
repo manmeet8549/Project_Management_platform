@@ -19,7 +19,7 @@ class MemoryCacheStore {
     return item.value as T;
   }
 
-  set<T>(key: string, value: T, ttlSeconds = 10, tags: string[] = []): void {
+  set<T>(key: string, value: T, ttlSeconds = 300, tags: string[] = []): void {
     const expiresAt = Date.now() + ttlSeconds * 1000;
     this.cache.set(key, { value, expiresAt, tags });
   }

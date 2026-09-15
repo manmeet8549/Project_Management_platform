@@ -20,7 +20,7 @@ import {
   User as UserIcon
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { fetchWithCache, invalidateClientCache } from '@/lib/client/clientCache';
+import { clientCache, fetchWithCache, invalidateClientCache } from '@/lib/client/clientCache';
 
 interface ProjectApiItem {
   id: string;
@@ -88,8 +88,18 @@ export default function DashboardPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { user, logout } = useAuth();
 
-  const [projects, setProjects] = useState<ProjectApiItem[]>([]);
-  const [tasks, setTasks] = useState<TaskApiItem[]>([]);
+  const [projects, setProjects] = useState<ProjectApiItem[]>(() => {
+    if (typeof window !== 'undefined') {
+      return clientCache.get<ProjectApiItem[]>('dashboard_projects').data || [];
+    }
+    return [];
+  });
+  const [tasks, setTasks] = useState<TaskApiItem[]>(() => {
+    if (typeof window !== 'undefined') {
+      return clientCache.get<TaskApiItem[]>('dashboard_tasks').data || [];
+    }
+    return [];
+  });
 
   const fetchDashboardData = React.useCallback(async (forceRefresh = false) => {
     fetchWithCache<ProjectApiItem[]>('/api/v1/projects', 'dashboard_projects', (data) => {
@@ -102,10 +112,9 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
-    fetchDashboardData(true);
+    fetchDashboardData(false);
 
     const handleUpdate = () => {
-      invalidateClientCache();
       fetchDashboardData(true);
     };
     window.addEventListener('projectsUpdated', handleUpdate);
@@ -117,7 +126,7 @@ export default function DashboardPage() {
       window.removeEventListener('tasksUpdated', handleUpdate);
       window.removeEventListener('taskUpdated', handleUpdate);
     };
-  }, [user?.id, fetchDashboardData]);
+  }, [fetchDashboardData]);
 
   const handleCreateProject = async (p: { title: string; description: string; category: string; dueDate: string }) => {
     try {

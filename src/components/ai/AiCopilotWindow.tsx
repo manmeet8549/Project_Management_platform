@@ -66,9 +66,9 @@ export function AiCopilotWindow({ isOpen, onClose }: AiCopilotWindowProps) {
     {
       id: '1',
       sender: 'ai',
-      text: "Hello! I'm your Personal AI Copilot powered by NVIDIA AI NIM.\n\nHave a new project or feature idea? Chat with me to refine it, and click 'Import Idea into Todo List' whenever you're ready!",
+      text: "Hello! I'm your Developer's Assistant.\n\nHave a new project or feature idea? Chat with me to refine it, and click 'Import Idea into Todo List' whenever you're ready!",
       timestamp: 'Just now',
-      badge: 'NVIDIA AI NIM',
+      badge: "Developer's Assistant",
     },
   ]);
   const [inputText, setInputText] = useState('');
@@ -289,7 +289,7 @@ export function AiCopilotWindow({ isOpen, onClose }: AiCopilotWindowProps) {
                  createdType === 'credential' ? 'Credential Saved' : 
                  createdType === 'note' ? 'Note Saved' : 
                  updatedType === 'task' ? 'Task Workspace' : 
-                 data.data.actionExecuted ? 'Action Executed' : 'Refinement Copilot',
+                 data.data.actionExecuted ? 'Action Executed' : "Developer's Assistant",
           showImportAction: hasIdeaIntent && !createdType && !updatedType && !data.data.actionExecuted && !data.data.importedCount,
           createdType,
           createdItem: createdItem ? {
@@ -311,7 +311,7 @@ export function AiCopilotWindow({ isOpen, onClose }: AiCopilotWindowProps) {
         const errorMsg: Message = {
           id: (Date.now() + 1).toString(),
           sender: 'ai',
-          text: data.error || "I'm having trouble connecting to NVIDIA AI Engine. Please check your network or try again.",
+          text: data.error || "I'm having trouble connecting. Please check your network or try again.",
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           badge: 'AI Error',
         };
@@ -349,10 +349,9 @@ export function AiCopilotWindow({ isOpen, onClose }: AiCopilotWindowProps) {
               </div>
               <div>
                 <h3 className="font-black text-sm text-white tracking-wide flex items-center gap-1.5">
-                  <span>AI Idea Refiner</span>
-                  <span className="text-[9px] bg-[#FFD93D] text-black px-1.5 py-0.5 rounded border border-black font-black uppercase">NVIDIA NIM</span>
+                  <span>Developer&apos;s Assistant</span>
                 </h3>
-                <div className="text-[10px] font-bold text-white/80">Llama-3.2 Vision • Real-time Task Generator</div>
+                <div className="text-[10px] font-bold text-white/80">Project &amp; Task Copilot</div>
               </div>
             </div>
 
@@ -519,7 +518,7 @@ export function AiCopilotWindow({ isOpen, onClose }: AiCopilotWindowProps) {
             {isLoading && (
               <div className="flex items-center gap-2 text-xs font-bold text-zinc-600 bg-white border-2 border-black p-2.5 rounded-xl max-w-[70%] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                 <Loader2 className="w-4 h-4 animate-spin text-[#7C3AED]" />
-                <span>NVIDIA AI Copilot is thinking...</span>
+                <span>Developer&apos;s Assistant is thinking...</span>
               </div>
             )}
 

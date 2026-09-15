@@ -24,9 +24,7 @@ import {
 import { cn } from '@/lib/utils';
 import { NewProjectModal } from '@/components/modals/NewProjectModal';
 import { ProjectSettingsModal } from '@/components/modals/ProjectSettingsModal';
-import { fetchWithCache, invalidateClientCache } from '@/lib/client/clientCache';
-
-import { useAuth } from '@/components/auth/AuthGuard';
+import { clientCache, fetchWithCache, invalidateClientCache } from '@/lib/client/clientCache';
 
 interface ProjectCardData {
   id: string;
@@ -61,9 +59,69 @@ interface RawTaskApiItem {
   status?: string;
 }
 
+const categoryIcons: Record<string, React.ComponentType<{ className?: string }>> = {
+  'E-Commerce': ShoppingCart,
+  'SaaS Platform': PieChart,
+  'Mobile App': Smartphone,
+  'Marketing': Megaphone,
+  'Backend': Monitor,
+  'Design & Dev': Monitor,
+};
+
+const categoryBgs: Record<string, string> = {
+  'E-Commerce': 'bg-[#FF6B6B]',
+  'SaaS Platform': 'bg-[#FFD93D]',
+  'Mobile App': 'bg-[#C4B5FD]',
+  'Marketing': 'bg-[#FFD93D]',
+  'Backend': 'bg-[#C4B5FD]',
+};
+
+function formatProjectCards(rawProjects: RawProjectApiItem[], rawTasks: RawTaskApiItem[]): ProjectCardData[] {
+  return rawProjects.map((p: RawProjectApiItem) => {
+    const projTasks = rawTasks.filter((t: RawTaskApiItem) => t.projectId === p.id);
+    const completedCount = projTasks.filter((t: RawTaskApiItem) => t.status === 'done' || t.status === 'completed').length;
+    const totalTasksCount = projTasks.length;
+    const pct = totalTasksCount > 0 ? Math.round((completedCount / totalTasksCount) * 100) : 0;
+
+    const rawStatus = p.status === 'in_progress' ? 'In Progress' : p.status === 'on_hold' ? 'On Hold' : p.status === 'completed' ? 'Completed' : 'Planning';
+    const statusBg = rawStatus === 'Completed' ? 'bg-[#DCFCE7] text-[#15803D]' : rawStatus === 'In Progress' ? 'bg-[#FFEAEA] text-[#B91C1C]' : rawStatus === 'On Hold' ? 'bg-[#FFFBEB] text-[#D97706]' : 'bg-[#F3E8FF] text-[#7C3AED]';
+
+    return {
+      id: p.id,
+      title: p.title,
+      description: p.description || '',
+      category: p.category || 'General',
+      rawStatus: (p.status as 'planning' | 'in-progress' | 'completed' | 'on-hold') || 'in-progress',
+      categoryIcon: categoryIcons[p.category] || ShoppingCart,
+      iconBg: categoryBgs[p.category] || 'bg-[#FF6B6B]',
+      status: rawStatus as ProjectCardData['status'],
+      statusBg,
+      percentage: pct,
+      progressColor: pct > 75 ? 'bg-[#16A34A]' : pct > 40 ? 'bg-[#FFD93D]' : 'bg-[#FF6B6B]',
+      completedTasks: completedCount,
+      totalTasks: totalTasksCount,
+      dueDate: p.dueDate || 'No Due Date',
+      updatedTime: 'Recently',
+    };
+  });
+}
+
 export default function ProjectsPage() {
-  const { user } = useAuth();
-  const [projects, setProjects] = useState<ProjectCardData[]>([]);
+  const currentProjectsRef = React.useRef<RawProjectApiItem[]>([]);
+  const currentTasksRef = React.useRef<RawTaskApiItem[]>([]);
+
+  const [projects, setProjects] = useState<ProjectCardData[]>(() => {
+    if (typeof window !== 'undefined') {
+      const cachedProjects = clientCache.get<RawProjectApiItem[]>('projects_list').data;
+      const cachedTasks = clientCache.get<RawTaskApiItem[]>('tasks_list').data;
+      if (cachedProjects && cachedProjects.length > 0) {
+        currentProjectsRef.current = cachedProjects;
+        currentTasksRef.current = cachedTasks || [];
+        return formatProjectCards(cachedProjects, cachedTasks || []);
+      }
+    }
+    return [];
+  });
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'All' | 'In Progress' | 'Planning' | 'On Hold' | 'Completed'>('All');
   const [sortFilter, setSortFilter] = useState<'Recent' | 'Title' | 'Percentage'>('Recent');
@@ -74,76 +132,38 @@ export default function ProjectsPage() {
 
   const [selectedSettingsProject, setSelectedSettingsProject] = useState<ProjectCardData | null>(null);
 
-  const fetchProjectsData = React.useCallback(async (forceRefresh = false) => {
+  const fetchProjectsData = React.useCallback((forceRefresh = false) => {
     try {
-      let rawProjects: RawProjectApiItem[] = [];
-      let rawTasks: RawTaskApiItem[] = [];
+      // 1. Immediately hydrate from cache if available (0ms render on reload)
+      const cachedP = clientCache.get<RawProjectApiItem[]>('projects_list').data;
+      const cachedT = clientCache.get<RawTaskApiItem[]>('tasks_list').data;
+      if (cachedP && cachedP.length > 0) {
+        currentProjectsRef.current = cachedP;
+        currentTasksRef.current = cachedT || [];
+        setProjects(formatProjectCards(cachedP, cachedT || []));
+      }
 
-      await Promise.all([
-        fetchWithCache<RawProjectApiItem[]>('/api/v1/projects', 'projects_list', (data) => {
-          rawProjects = data;
-        }, { forceRefresh }),
-        fetchWithCache<RawTaskApiItem[]>('/api/v1/tasks', 'tasks_list', (data) => {
-          rawTasks = data;
-        }, { forceRefresh }),
-      ]);
+      // 2. Non-blocking SWR background revalidations
+      fetchWithCache<RawProjectApiItem[]>('/api/v1/projects', 'projects_list', (data) => {
+        currentProjectsRef.current = data;
+        setProjects(formatProjectCards(data, currentTasksRef.current));
+      }, { forceRefresh });
 
-      const categoryIcons: Record<string, React.ComponentType<{ className?: string }>> = {
-        'E-Commerce': ShoppingCart,
-        'SaaS Platform': PieChart,
-        'Mobile App': Smartphone,
-        'Marketing': Megaphone,
-        'Backend': Monitor,
-        'Design & Dev': Monitor,
-      };
-
-      const categoryBgs: Record<string, string> = {
-        'E-Commerce': 'bg-[#FF6B6B]',
-        'SaaS Platform': 'bg-[#FFD93D]',
-        'Mobile App': 'bg-[#C4B5FD]',
-        'Marketing': 'bg-[#FFD93D]',
-        'Backend': 'bg-[#C4B5FD]',
-      };
-
-      const formattedProjects: ProjectCardData[] = rawProjects.map((p: RawProjectApiItem) => {
-        const projTasks = rawTasks.filter((t: RawTaskApiItem) => t.projectId === p.id);
-        const completedCount = projTasks.filter((t: RawTaskApiItem) => t.status === 'done' || t.status === 'completed').length;
-        const totalTasksCount = projTasks.length;
-        const pct = totalTasksCount > 0 ? Math.round((completedCount / totalTasksCount) * 100) : 0;
-
-        const rawStatus = p.status === 'in_progress' ? 'In Progress' : p.status === 'on_hold' ? 'On Hold' : p.status === 'completed' ? 'Completed' : 'Planning';
-        const statusBg = rawStatus === 'Completed' ? 'bg-[#DCFCE7] text-[#15803D]' : rawStatus === 'In Progress' ? 'bg-[#FFEAEA] text-[#B91C1C]' : rawStatus === 'On Hold' ? 'bg-[#FFFBEB] text-[#D97706]' : 'bg-[#F3E8FF] text-[#7C3AED]';
-
-        return {
-          id: p.id,
-          title: p.title,
-          description: p.description || '',
-          category: p.category || 'General',
-          rawStatus: (p.status as 'planning' | 'in-progress' | 'completed' | 'on-hold') || 'in-progress',
-          categoryIcon: categoryIcons[p.category] || ShoppingCart,
-          iconBg: categoryBgs[p.category] || 'bg-[#FF6B6B]',
-          status: rawStatus as ProjectCardData['status'],
-          statusBg,
-          percentage: pct,
-          progressColor: pct > 75 ? 'bg-[#16A34A]' : pct > 40 ? 'bg-[#FFD93D]' : 'bg-[#FF6B6B]',
-          completedTasks: completedCount,
-          totalTasks: totalTasksCount,
-          dueDate: p.dueDate || 'No Due Date',
-          updatedTime: 'Recently',
-        };
-      });
-
-      setProjects(formattedProjects);
+      fetchWithCache<RawTaskApiItem[]>('/api/v1/tasks', 'tasks_list', (data) => {
+        currentTasksRef.current = data;
+        if (currentProjectsRef.current.length > 0) {
+          setProjects(formatProjectCards(currentProjectsRef.current, data));
+        }
+      }, { forceRefresh });
     } catch (err) {
       console.error('Failed to load projects from DB:', err);
     }
   }, []);
 
   React.useEffect(() => {
-    fetchProjectsData(true);
+    fetchProjectsData(false);
 
     const handleUpdate = () => {
-      invalidateClientCache();
       fetchProjectsData(true);
     };
     window.addEventListener('projectsUpdated', handleUpdate);
@@ -154,7 +174,7 @@ export default function ProjectsPage() {
       window.removeEventListener('tasksUpdated', handleUpdate);
       window.removeEventListener('taskUpdated', handleUpdate);
     };
-  }, [user?.id, fetchProjectsData]);
+  }, [fetchProjectsData]);
 
   const handleAddProject = async (newProj: { title: string; dueDate: string; description: string; category: string }) => {
     try {

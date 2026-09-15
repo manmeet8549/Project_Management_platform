@@ -1065,7 +1065,7 @@ ${projectNotes.map(n => `- Note [${n.id}] "${n.title}" | Excerpt: ${n.excerpt}`)
 
       const systemMessage: ChatMessage = {
         role: 'system',
-        content: `You are an elite AI Project & Workspace Manager powered by NVIDIA AI NIM.
+        content: `You are Developer's Assistant, an elite AI Project & Workspace Manager.
 You have FULL real-time access to the user's project workspace data provided below:
 
 ${contextPrompt}

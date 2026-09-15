@@ -7,7 +7,7 @@ import { NewTaskModal } from '@/components/modals/NewTaskModal';
 import { EditTaskModal } from '@/components/modals/EditTaskModal';
 import { NewCredentialModal } from '@/components/modals/NewCredentialModal';
 import { ProjectSettingsModal } from '@/components/modals/ProjectSettingsModal';
-import { fetchWithCache, invalidateClientCache } from '@/lib/client/clientCache';
+import { clientCache, fetchWithCache, invalidateClientCache } from '@/lib/client/clientCache';
 import { motion } from 'framer-motion';
 import { 
   ArrowLeft, 
@@ -84,74 +84,105 @@ interface RawTaskApiDetail {
   description?: string | null;
 }
 
+interface TaskItem {
+  id: string;
+  title: string;
+  prio: string;
+  prioBg: string;
+  date: string;
+  count: number;
+  status: 'To Do' | 'In Progress' | 'Completed';
+  comment?: string;
+  time?: string;
+}
+
+function mapRawTasks(tasksList: RawTaskApiDetail[], rawProjectId: string, projData: RawProjectApiDetail | null): TaskItem[] {
+  const matchingTasks: RawTaskApiDetail[] = tasksList.filter((t: RawTaskApiDetail) => 
+    !rawProjectId || t.projectId === rawProjectId || rawProjectId.startsWith('proj-') || (projData && t.projectId === projData.id)
+  );
+
+  return matchingTasks.map((t: RawTaskApiDetail) => {
+    const rawPrio = t.priority === 'urgent' || t.priority === 'high' ? 'High Priority' : t.priority === 'medium' ? 'Medium Priority' : 'Low Priority';
+    const prioBg = rawPrio === 'High Priority' ? 'bg-[#FF6B6B]' : rawPrio === 'Medium Priority' ? 'bg-[#FFD93D]' : 'bg-[#C4B5FD]';
+
+    const mappedStatus: 'To Do' | 'In Progress' | 'Completed' = 
+      (t.status === 'done' || t.status === 'completed') ? 'Completed' : 
+      (t.status === 'in_progress' || t.status === 'in-progress') ? 'In Progress' : 'To Do';
+
+    return {
+      id: t.id,
+      title: t.title,
+      prio: rawPrio,
+      prioBg,
+      date: t.dueDate || 'No Due Date',
+      count: 0,
+      status: mappedStatus,
+      comment: t.description || undefined,
+      time: 'DB record'
+    };
+  });
+}
+
 export default function ProjectDetailsPage() {
   const params = useParams();
   const router = useRouter();
   const rawProjectId = (params?.id as string) || '';
 
-  const [projectDetail, setProjectDetail] = useState<RawProjectApiDetail | null>(null);
+  const currentProjRef = React.useRef<RawProjectApiDetail | null>(null);
+  const currentTasksRef = React.useRef<RawTaskApiDetail[]>([]);
+
+  const [projectDetail, setProjectDetail] = useState<RawProjectApiDetail | null>(() => {
+    if (typeof window !== 'undefined' && rawProjectId) {
+      const cached = clientCache.get<RawProjectApiDetail>(`project_detail_${rawProjectId}`).data;
+      if (cached) currentProjRef.current = cached;
+      return cached;
+    }
+    return null;
+  });
   const [isProjectSettingsOpen, setIsProjectSettingsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'tasks' | 'credentials' | 'notes' | 'activity'>('tasks');
   const [selectedNoteId, setSelectedNoteId] = useState<string>('1');
 
-  // Task Column States
-  interface TaskItem {
-    id: string;
-    title: string;
-    prio: string;
-    prioBg: string;
-    date: string;
-    count: number;
-    status: 'To Do' | 'In Progress' | 'Completed';
-    comment?: string;
-    time?: string;
-  }
-
-  const [allTasks, setAllTasks] = useState<TaskItem[]>([]);
-
-  const fetchProjectAndTasks = React.useCallback(async (forceRefresh = false) => {
-    try {
-      let projData: RawProjectApiDetail | null = null;
-      let tasksList: RawTaskApiDetail[] = [];
-
-      await Promise.all([
-        fetchWithCache<RawProjectApiDetail>(`/api/v1/projects/${rawProjectId}`, `project_detail_${rawProjectId}`, (data) => {
-          projData = data;
-          setProjectDetail(data);
-        }, { forceRefresh }),
-        fetchWithCache<RawTaskApiDetail[]>(`/api/v1/tasks?projectId=${rawProjectId}`, `tasks_list_${rawProjectId}`, (data) => {
-          tasksList = data;
-        }, { forceRefresh }),
-      ]);
-
-      if (tasksList && Array.isArray(tasksList)) {
-        const matchingTasks: RawTaskApiDetail[] = tasksList.filter((t: RawTaskApiDetail) => 
-          !rawProjectId || t.projectId === rawProjectId || rawProjectId.startsWith('proj-') || (projData && t.projectId === (projData as RawProjectApiDetail).id)
-        );
-
-        const mappedTasks: TaskItem[] = matchingTasks.map((t: RawTaskApiDetail) => {
-          const rawPrio = t.priority === 'urgent' || t.priority === 'high' ? 'High Priority' : t.priority === 'medium' ? 'Medium Priority' : 'Low Priority';
-          const prioBg = rawPrio === 'High Priority' ? 'bg-[#FF6B6B]' : rawPrio === 'Medium Priority' ? 'bg-[#FFD93D]' : 'bg-[#C4B5FD]';
-
-          const mappedStatus: 'To Do' | 'In Progress' | 'Completed' = 
-            (t.status === 'done' || t.status === 'completed') ? 'Completed' : 
-            (t.status === 'in_progress' || t.status === 'in-progress') ? 'In Progress' : 'To Do';
-
-          return {
-            id: t.id,
-            title: t.title,
-            prio: rawPrio,
-            prioBg,
-            date: t.dueDate || 'No Due Date',
-            count: 0,
-            status: mappedStatus,
-            comment: t.description || undefined,
-            time: 'DB record'
-          };
-        });
-
-        setAllTasks(mappedTasks);
+  const [allTasks, setAllTasks] = useState<TaskItem[]>(() => {
+    if (typeof window !== 'undefined' && rawProjectId) {
+      const cachedTasks = clientCache.get<RawTaskApiDetail[]>(`tasks_list_${rawProjectId}`).data;
+      const cachedProj = clientCache.get<RawProjectApiDetail>(`project_detail_${rawProjectId}`).data;
+      if (cachedTasks && cachedTasks.length > 0) {
+        currentTasksRef.current = cachedTasks;
+        return mapRawTasks(cachedTasks, rawProjectId, cachedProj);
       }
+    }
+    return [];
+  });
+
+  const fetchProjectAndTasks = React.useCallback((forceRefresh = false) => {
+    if (!rawProjectId) return;
+    try {
+      // 1. Immediately hydrate from cache (0ms render on reload)
+      const cachedProj = clientCache.get<RawProjectApiDetail>(`project_detail_${rawProjectId}`).data;
+      const cachedTasks = clientCache.get<RawTaskApiDetail[]>(`tasks_list_${rawProjectId}`).data;
+      if (cachedProj) {
+        currentProjRef.current = cachedProj;
+        setProjectDetail(cachedProj);
+      }
+      if (cachedTasks && cachedTasks.length > 0) {
+        currentTasksRef.current = cachedTasks;
+        setAllTasks(mapRawTasks(cachedTasks, rawProjectId, cachedProj || currentProjRef.current));
+      }
+
+      // 2. Non-blocking SWR background revalidations
+      fetchWithCache<RawProjectApiDetail>(`/api/v1/projects/${rawProjectId}`, `project_detail_${rawProjectId}`, (data) => {
+        currentProjRef.current = data;
+        setProjectDetail(data);
+        if (currentTasksRef.current.length > 0) {
+          setAllTasks(mapRawTasks(currentTasksRef.current, rawProjectId, data));
+        }
+      }, { forceRefresh });
+
+      fetchWithCache<RawTaskApiDetail[]>(`/api/v1/tasks?projectId=${rawProjectId}`, `tasks_list_${rawProjectId}`, (data) => {
+        currentTasksRef.current = data;
+        setAllTasks(mapRawTasks(data, rawProjectId, currentProjRef.current));
+      }, { forceRefresh });
     } catch (err) {
       console.error('Failed to load project details and tasks:', err);
     }
@@ -190,20 +221,17 @@ export default function ProjectDetailsPage() {
   }, [rawProjectId]);
 
   React.useEffect(() => {
-    fetchProjectAndTasks();
-    fetchCredentials();
-    fetchNotes();
+    fetchProjectAndTasks(false);
+    fetchCredentials(false);
+    fetchNotes(false);
 
     const handleUpdate = () => {
-      invalidateClientCache();
       fetchProjectAndTasks(true);
     };
     const handleCredsUpdate = () => {
-      invalidateClientCache();
       fetchCredentials(true);
     };
     const handleNotesUpdate = () => {
-      invalidateClientCache();
       fetchNotes(true);
     };
 
@@ -259,6 +287,10 @@ export default function ProjectDetailsPage() {
   };
 
   const handleMoveTask = async (taskId: string, targetStatus: 'To Do' | 'In Progress' | 'Completed') => {
+    // 1. Optimistic Update IMMEDIATELY (0ms latency!)
+    const previousTasks = [...allTasks];
+    setAllTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: targetStatus } : t));
+
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -274,15 +306,14 @@ export default function ProjectDetailsPage() {
 
       const resData = await res.json();
       if (resData.success) {
-        invalidateClientCache(['tasks_list', 'dashboard_tasks', 'projects_list', `project_detail_${rawProjectId}`]);
+        invalidateClientCache(['tasks_list', 'dashboard_tasks', `project_detail_${rawProjectId}`]);
         window.dispatchEvent(new Event('tasksUpdated'));
-        fetchProjectAndTasks(true);
       } else {
-        setAllTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: targetStatus } : t));
+        setAllTasks(previousTasks);
       }
     } catch (err) {
       console.error('Failed to update task status:', err);
-      setAllTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: targetStatus } : t));
+      setAllTasks(previousTasks);
     }
   };
 
@@ -291,6 +322,15 @@ export default function ProjectDetailsPage() {
   const [editingTask, setEditingTask] = useState<TaskItem | null>(null);
 
   const handleUpdateTask = async (updated: { id: string; title: string; priority: 'High Priority' | 'Medium Priority' | 'Low Priority'; comment?: string }) => {
+    const previousTasks = [...allTasks];
+    setAllTasks(prev => prev.map(t => t.id === updated.id ? { 
+      ...t, 
+      title: updated.title, 
+      prio: updated.priority, 
+      prioBg: updated.priority === 'High Priority' ? 'bg-[#FF6B6B]' : updated.priority === 'Medium Priority' ? 'bg-[#FFD93D]' : 'bg-[#C4B5FD]', 
+      comment: updated.comment || t.comment 
+    } : t));
+
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -310,36 +350,50 @@ export default function ProjectDetailsPage() {
 
       const resData = await res.json();
       if (resData.success) {
-        invalidateClientCache(['tasks_list', 'dashboard_tasks', 'projects_list', `project_detail_${rawProjectId}`]);
+        invalidateClientCache(['tasks_list', 'dashboard_tasks', `project_detail_${rawProjectId}`]);
         window.dispatchEvent(new Event('tasksUpdated'));
-        fetchProjectAndTasks(true);
+      } else {
+        setAllTasks(previousTasks);
       }
     } catch (err) {
       console.error('Failed to update task:', err);
+      setAllTasks(previousTasks);
     }
   };
 
   const handleDeleteTask = async (taskId: string) => {
+    const previousTasks = [...allTasks];
+    setAllTasks(prev => prev.filter(t => t.id !== taskId));
+
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
-      await fetch(`/api/v1/tasks/${taskId}`, {
+      const res = await fetch(`/api/v1/tasks/${taskId}`, {
         method: 'DELETE',
         headers,
       });
-      invalidateClientCache(['tasks_list', 'dashboard_tasks', 'projects_list', `project_detail_${rawProjectId}`]);
-      window.dispatchEvent(new Event('tasksUpdated'));
-      fetchProjectAndTasks(true);
+
+      if (res.ok) {
+        invalidateClientCache(['tasks_list', 'dashboard_tasks', `project_detail_${rawProjectId}`]);
+        window.dispatchEvent(new Event('tasksUpdated'));
+      } else {
+        setAllTasks(previousTasks);
+      }
     } catch (err) {
       console.error('Failed to delete task:', err);
-      setAllTasks(prev => prev.filter(t => t.id !== taskId));
+      setAllTasks(previousTasks);
     }
   };
 
   // Credentials States
-  const [credentials, setCredentials] = useState<CredentialItem[]>([]);
+  const [credentials, setCredentials] = useState<CredentialItem[]>(() => {
+    if (typeof window !== 'undefined' && rawProjectId) {
+      return clientCache.get<CredentialItem[]>(`credentials_${rawProjectId}`).data || [];
+    }
+    return [];
+  });
   const [isCredentialModalOpen, setIsCredentialModalOpen] = useState(false);
   const [visibleFields, setVisibleFields] = useState<Record<string, boolean>>({});
 
@@ -414,7 +468,12 @@ export default function ProjectDetailsPage() {
   const inProgressTasks = allTasks.filter(t => t.status === 'In Progress');
   const completedTasksState = allTasks.filter(t => t.status === 'Completed');
 
-  const [notes, setNotes] = useState<NoteItem[]>([]);
+  const [notes, setNotes] = useState<NoteItem[]>(() => {
+    if (typeof window !== 'undefined' && rawProjectId) {
+      return clientCache.get<NoteItem[]>(`notes_${rawProjectId}`).data || [];
+    }
+    return [];
+  });
   const selectedNote = notes.find(n => n.id === selectedNoteId) || notes[0];
 
   const handleAddNewNote = async () => {

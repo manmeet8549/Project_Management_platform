@@ -8,14 +8,12 @@ export const PATCH = apiHandler(async (req: NextRequest, { params }: { params: P
   const { id } = await params;
   const body = await validateBody(req, updateTaskStatusSchema);
 
-  const existingTask = await db.getTaskById(id);
-  if (!existingTask) {
+  const updatedTask = await db.updateTaskStatus(id, body.status);
+  if (!updatedTask) {
     throw new NotFoundError(`Task with ID '${id}' not found`);
   }
 
-  const updatedTask = await db.updateTaskStatus(id, body.status);
   return successResponse(updatedTask, 200, {
-    previousStatus: existingTask.status,
     newStatus: body.status,
   });
 });

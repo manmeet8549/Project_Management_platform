@@ -147,15 +147,13 @@ export async function fetchWithCache<T>(
   const ttlMs = options?.ttlMs ?? DEFAULT_TTL_MS;
   const forceRefresh = options?.forceRefresh ?? false;
 
-  // 1. Return cached data immediately if present and not forcing refresh
-  if (!forceRefresh) {
-    const { data: cachedData, isStale } = clientCache.get<T>(cacheKey, ttlMs);
-    if (cachedData !== null) {
-      onData(cachedData, true);
-      // If data is fresh and not stale, skip network fetch!
-      if (!isStale) {
-        return cachedData;
-      }
+  // 1. Immediately return cached data if present (instant 0ms render on reload!)
+  const { data: cachedData, isStale } = clientCache.get<T>(cacheKey, ttlMs);
+  if (cachedData !== null) {
+    onData(cachedData, true);
+    // If data is fresh and not forced to refresh, skip background fetch
+    if (!isStale && !forceRefresh) {
+      return cachedData;
     }
   }
 
