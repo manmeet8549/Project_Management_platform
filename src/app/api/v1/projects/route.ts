@@ -4,6 +4,8 @@ import { successResponse, UnauthorizedError } from '@/lib/api/errors/errors';
 import { createProjectSchema } from '@/lib/api/validators/project.schema';
 import { db } from '@/lib/api/db/db';
 
+export const dynamic = 'force-dynamic';
+
 export const GET = apiHandler(async (req: NextRequest) => {
   const url = new URL(req.url);
   const authUser = getAuthUserOptional(req);

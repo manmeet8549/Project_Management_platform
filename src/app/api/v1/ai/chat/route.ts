@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db, TaskRecord, CredentialRecord, NoteRecord } from '@/lib/api/db/db';
 import { getAuthUserOptional } from '@/lib/api/middleware/middleware';
 
+export const dynamic = 'force-dynamic';
+
 const NVIDIA_API_KEY = process.env.NVIDIA_API_KEY || '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';
 const NVIDIA_API_URL = 'https://integrate.api.nvidia.com/v1/chat/completions';
 const MODEL_NAME = 'meta/llama-3.2-11b-vision-instruct';

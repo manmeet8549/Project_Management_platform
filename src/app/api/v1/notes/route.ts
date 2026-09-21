@@ -3,6 +3,8 @@ import { apiHandler, getAuthUserOptional } from '@/lib/api/middleware/middleware
 import { successResponse, UnauthorizedError, BadRequestError, ForbiddenError } from '@/lib/api/errors/errors';
 import { db } from '@/lib/api/db/db';
 
+export const dynamic = 'force-dynamic';
+
 export const GET = apiHandler(async (req: NextRequest) => {
   const url = new URL(req.url);
   const authUser = getAuthUserOptional(req);
