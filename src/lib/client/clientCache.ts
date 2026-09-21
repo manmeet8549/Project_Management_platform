@@ -8,6 +8,16 @@ interface ClientCacheEntry<T> {
   timestamp: number;
 }
 
+export interface CachedTaskItem {
+  id: string;
+  projectId?: string;
+  title: string;
+  status?: string;
+  priority?: string;
+  dueDate?: string | null;
+  description?: string | null;
+}
+
 const DEFAULT_TTL_MS = 5 * 60 * 1000; // 5 minutes fresh TTL
 const STALE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours stale fallback TTL
 
@@ -115,6 +125,90 @@ class ClientCacheStore {
       } catch (err) {
         console.warn('LocalStorage clear error:', err);
       }
+    }
+  }
+
+  /**
+   * Directly updates a task across all relevant cached task lists (project list, global list, dashboard list)
+   */
+  updateTaskInCache(projectId: string, taskId: string, updates: Record<string, unknown>): void {
+    const projectKey = `tasks_list_${projectId}`;
+    const { data: projectTasks } = this.get<CachedTaskItem[]>(projectKey, Infinity);
+    if (Array.isArray(projectTasks)) {
+      const updated = projectTasks.map((t) => (t.id === taskId ? { ...t, ...updates } : t));
+      this.set(projectKey, updated);
+    }
+
+    const { data: globalTasks } = this.get<CachedTaskItem[]>('tasks_list', Infinity);
+    if (Array.isArray(globalTasks)) {
+      const updated = globalTasks.map((t) => (t.id === taskId ? { ...t, ...updates } : t));
+      this.set('tasks_list', updated);
+    }
+
+    const { data: dashTasks } = this.get<CachedTaskItem[]>('dashboard_tasks', Infinity);
+    if (Array.isArray(dashTasks)) {
+      const updated = dashTasks.map((t) => (t.id === taskId ? { ...t, ...updates } : t));
+      this.set('dashboard_tasks', updated);
+    }
+  }
+
+  /**
+   * Directly adds a new task to cached task lists
+   */
+  addTaskToCache(projectId: string, newTask: CachedTaskItem): void {
+    const projectKey = `tasks_list_${projectId}`;
+    const { data: projectTasks } = this.get<CachedTaskItem[]>(projectKey, Infinity);
+    this.set(projectKey, [newTask, ...(Array.isArray(projectTasks) ? projectTasks : [])]);
+
+    const { data: globalTasks } = this.get<CachedTaskItem[]>('tasks_list', Infinity);
+    this.set('tasks_list', [newTask, ...(Array.isArray(globalTasks) ? globalTasks : [])]);
+
+    const { data: dashTasks } = this.get<CachedTaskItem[]>('dashboard_tasks', Infinity);
+    this.set('dashboard_tasks', [newTask, ...(Array.isArray(dashTasks) ? dashTasks : [])]);
+  }
+
+  /**
+   * Directly removes a task from cached task lists
+   */
+  deleteTaskFromCache(projectId: string, taskId: string): void {
+    const projectKey = `tasks_list_${projectId}`;
+    const { data: projectTasks } = this.get<CachedTaskItem[]>(projectKey, Infinity);
+    if (Array.isArray(projectTasks)) {
+      this.set(projectKey, projectTasks.filter((t) => t.id !== taskId));
+    }
+
+    const { data: globalTasks } = this.get<CachedTaskItem[]>('tasks_list', Infinity);
+    if (Array.isArray(globalTasks)) {
+      this.set('tasks_list', globalTasks.filter((t) => t.id !== taskId));
+    }
+
+    const { data: dashTasks } = this.get<CachedTaskItem[]>('dashboard_tasks', Infinity);
+    if (Array.isArray(dashTasks)) {
+      this.set('dashboard_tasks', dashTasks.filter((t) => t.id !== taskId));
+    }
+  }
+
+  /**
+   * Replaces a temporary client task ID with the real database ID in cached task lists
+   */
+  replaceTaskIdInCache(projectId: string, tempId: string, realId: string): void {
+    const projectKey = `tasks_list_${projectId}`;
+    const { data: projectTasks } = this.get<CachedTaskItem[]>(projectKey, Infinity);
+    if (Array.isArray(projectTasks)) {
+      const updated = projectTasks.map((t) => (t.id === tempId ? { ...t, id: realId } : t));
+      this.set(projectKey, updated);
+    }
+
+    const { data: globalTasks } = this.get<CachedTaskItem[]>('tasks_list', Infinity);
+    if (Array.isArray(globalTasks)) {
+      const updated = globalTasks.map((t) => (t.id === tempId ? { ...t, id: realId } : t));
+      this.set('tasks_list', updated);
+    }
+
+    const { data: dashTasks } = this.get<CachedTaskItem[]>('dashboard_tasks', Infinity);
+    if (Array.isArray(dashTasks)) {
+      const updated = dashTasks.map((t) => (t.id === tempId ? { ...t, id: realId } : t));
+      this.set('dashboard_tasks', updated);
     }
   }
 }

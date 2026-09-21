@@ -8,6 +8,7 @@ import { EditTaskModal } from '@/components/modals/EditTaskModal';
 import { NewCredentialModal } from '@/components/modals/NewCredentialModal';
 import { ProjectSettingsModal } from '@/components/modals/ProjectSettingsModal';
 import { clientCache, fetchWithCache, invalidateClientCache } from '@/lib/client/clientCache';
+import { taskMutationQueue, areTaskListsEqual, SyncStatus } from '@/lib/client/mutationQueue';
 import { motion } from 'framer-motion';
 import { 
   ArrowLeft, 
@@ -27,6 +28,7 @@ import {
   ChevronDown,
   ShieldCheck,
   Lock,
+  Key,
   Trash2,
   SlidersHorizontal,
   Eye,
@@ -131,34 +133,28 @@ export default function ProjectDetailsPage() {
   const currentProjRef = React.useRef<RawProjectApiDetail | null>(null);
   const currentTasksRef = React.useRef<RawTaskApiDetail[]>([]);
 
-  const [projectDetail, setProjectDetail] = useState<RawProjectApiDetail | null>(() => {
-    if (typeof window !== 'undefined' && rawProjectId) {
-      const cached = clientCache.get<RawProjectApiDetail>(`project_detail_${rawProjectId}`).data;
-      if (cached) currentProjRef.current = cached;
-      return cached;
-    }
-    return null;
-  });
+  const [projectDetail, setProjectDetail] = useState<RawProjectApiDetail | null>(null);
   const [isProjectSettingsOpen, setIsProjectSettingsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'tasks' | 'credentials' | 'notes' | 'activity'>('tasks');
   const [selectedNoteId, setSelectedNoteId] = useState<string>('1');
 
-  const [allTasks, setAllTasks] = useState<TaskItem[]>(() => {
-    if (typeof window !== 'undefined' && rawProjectId) {
-      const cachedTasks = clientCache.get<RawTaskApiDetail[]>(`tasks_list_${rawProjectId}`).data;
-      const cachedProj = clientCache.get<RawProjectApiDetail>(`project_detail_${rawProjectId}`).data;
-      if (cachedTasks && cachedTasks.length > 0) {
-        currentTasksRef.current = cachedTasks;
-        return mapRawTasks(cachedTasks, rawProjectId, cachedProj);
-      }
-    }
-    return [];
-  });
+  const [allTasks, setAllTasks] = useState<TaskItem[]>([]);
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>('synced');
+  const [pendingCount, setPendingCount] = useState<number>(0);
+
+  // Subscribe to task mutation queue status (syncing, synced, offline)
+  React.useEffect(() => {
+    const unsubscribe = taskMutationQueue.subscribeStatus((status, count) => {
+      setSyncStatus(status);
+      setPendingCount(count);
+    });
+    return () => unsubscribe();
+  }, []);
 
   const fetchProjectAndTasks = React.useCallback((forceRefresh = false) => {
     if (!rawProjectId) return;
     try {
-      // 1. Immediately hydrate from cache (0ms render on reload)
+      // 1. Immediately hydrate from local storage (0ms render on reload!)
       const cachedProj = clientCache.get<RawProjectApiDetail>(`project_detail_${rawProjectId}`).data;
       const cachedTasks = clientCache.get<RawTaskApiDetail[]>(`tasks_list_${rawProjectId}`).data;
       if (cachedProj) {
@@ -166,11 +162,13 @@ export default function ProjectDetailsPage() {
         setProjectDetail(cachedProj);
       }
       if (cachedTasks && cachedTasks.length > 0) {
-        currentTasksRef.current = cachedTasks;
-        setAllTasks(mapRawTasks(cachedTasks, rawProjectId, cachedProj || currentProjRef.current));
+        // Overlay any un-synced pending local mutations so in-flight / offline moves show instantly
+        const localTasks = taskMutationQueue.applyPendingMutations(cachedTasks, rawProjectId);
+        currentTasksRef.current = localTasks;
+        setAllTasks(mapRawTasks(localTasks, rawProjectId, cachedProj || currentProjRef.current));
       }
 
-      // 2. Non-blocking SWR background revalidations
+      // 2. Non-blocking SWR background revalidation from database
       fetchWithCache<RawProjectApiDetail>(`/api/v1/projects/${rawProjectId}`, `project_detail_${rawProjectId}`, (data) => {
         currentProjRef.current = data;
         setProjectDetail(data);
@@ -179,9 +177,17 @@ export default function ProjectDetailsPage() {
         }
       }, { forceRefresh });
 
-      fetchWithCache<RawTaskApiDetail[]>(`/api/v1/tasks?projectId=${rawProjectId}`, `tasks_list_${rawProjectId}`, (data) => {
-        currentTasksRef.current = data;
-        setAllTasks(mapRawTasks(data, rawProjectId, currentProjRef.current));
+      fetchWithCache<RawTaskApiDetail[]>(`/api/v1/tasks?projectId=${rawProjectId}`, `tasks_list_${rawProjectId}`, (incomingData) => {
+        // Overlay any pending local mutations on incoming database data
+        const reconciled = taskMutationQueue.applyPendingMutations(incomingData, rawProjectId);
+        
+        // Smart Diffing: Check if anything actually changed between current rendered tasks and reconciled server tasks
+        const isIdentical = areTaskListsEqual(currentTasksRef.current, reconciled);
+        if (!isIdentical) {
+          currentTasksRef.current = reconciled;
+          clientCache.set(`tasks_list_${rawProjectId}`, reconciled);
+          setAllTasks(mapRawTasks(reconciled, rawProjectId, currentProjRef.current));
+        }
       }, { forceRefresh });
     } catch (err) {
       console.error('Failed to load project details and tasks:', err);
@@ -211,7 +217,7 @@ export default function ProjectDetailsPage() {
         `/api/v1/notes?projectId=${rawProjectId}`,
         `notes_${rawProjectId}`,
         (data) => {
-          if (Array.isArray(data) && data.length > 0) setNotes(data);
+          if (Array.isArray(data)) setNotes(data);
         },
         { forceRefresh }
       );
@@ -255,74 +261,83 @@ export default function ProjectDetailsPage() {
   const [dragOverColumn, setDragOverColumn] = useState<'To Do' | 'In Progress' | 'Completed' | null>(null);
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
 
-  const handleAddTask = async (newTask: { title: string; priority: 'High Priority' | 'Medium Priority' | 'Low Priority' }) => {
-    try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (token) headers['Authorization'] = `Bearer ${token}`;
+  const handleAddTask = (newTask: { title: string; priority: 'High Priority' | 'Medium Priority' | 'Low Priority' }) => {
+    const mappedPrio = newTask.priority === 'High Priority' ? 'high' : newTask.priority === 'Medium Priority' ? 'medium' : 'low';
+    const mappedStatus = activeTaskColumn === 'Completed' ? 'completed' : activeTaskColumn === 'In Progress' ? 'in-progress' : 'todo';
+    const tempId = `temp_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const effectiveProjectId = projectDetail?.id || rawProjectId || 'proj-1';
 
-      const mappedPrio = newTask.priority === 'High Priority' ? 'high' : newTask.priority === 'Medium Priority' ? 'medium' : 'low';
-      const mappedStatus = activeTaskColumn === 'Completed' ? 'completed' : activeTaskColumn === 'In Progress' ? 'in-progress' : 'todo';
+    const rawNewTask: RawTaskApiDetail = {
+      id: tempId,
+      projectId: effectiveProjectId,
+      title: newTask.title,
+      priority: mappedPrio,
+      status: mappedStatus,
+      dueDate: 'No Due Date',
+      description: '',
+    };
 
-      const res = await fetch('/api/v1/tasks', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          title: newTask.title,
-          priority: mappedPrio,
-          status: mappedStatus,
-          projectId: projectDetail?.id || rawProjectId || 'proj-1',
-        }),
-      });
+    // 1. Update React state immediately (0ms visual latency)
+    const uiNewTask: TaskItem = {
+      id: tempId,
+      title: newTask.title,
+      prio: newTask.priority,
+      prioBg: newTask.priority === 'High Priority' ? 'bg-[#FF6B6B]' : newTask.priority === 'Medium Priority' ? 'bg-[#FFD93D]' : 'bg-[#C4B5FD]',
+      date: 'No Due Date',
+      count: 0,
+      status: activeTaskColumn,
+      time: 'Just now',
+    };
+    setAllTasks(prev => [uiNewTask, ...prev]);
+    currentTasksRef.current = [rawNewTask, ...currentTasksRef.current];
 
-      const resData = await res.json();
-      if (resData.success) {
-        invalidateClientCache(['tasks_list', 'dashboard_tasks', 'projects_list', `project_detail_${rawProjectId}`]);
-        window.dispatchEvent(new Event('tasksUpdated'));
-        fetchProjectAndTasks(true);
-      }
-    } catch (err) {
-      console.error('Failed to create task:', err);
-    }
+    // 2. Persist locally to computer storage immediately
+    clientCache.addTaskToCache(effectiveProjectId, rawNewTask);
+
+    // 3. Enqueue mutation in sequential FIFO queue for background database sync
+    taskMutationQueue.enqueue({
+      projectId: effectiveProjectId,
+      taskId: tempId,
+      tempId,
+      type: 'CREATE_TASK',
+      payload: {
+        title: newTask.title,
+        priority: mappedPrio,
+        status: mappedStatus,
+        projectId: effectiveProjectId,
+      },
+    });
   };
 
-  const handleMoveTask = async (taskId: string, targetStatus: 'To Do' | 'In Progress' | 'Completed') => {
-    // 1. Optimistic Update IMMEDIATELY (0ms latency!)
-    const previousTasks = [...allTasks];
+  const handleMoveTask = (taskId: string, targetStatus: 'To Do' | 'In Progress' | 'Completed') => {
+    const mappedStatus = targetStatus === 'Completed' ? 'completed' : targetStatus === 'In Progress' ? 'in-progress' : 'todo';
+
+    // 1. Update React state IMMEDIATELY (0ms latency, zero stutter or jump)
     setAllTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: targetStatus } : t));
 
-    try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (token) headers['Authorization'] = `Bearer ${token}`;
+    // 2. Persist directly to local storage / computer cache IMMEDIATELY
+    clientCache.updateTaskInCache(rawProjectId, taskId, { status: mappedStatus });
 
-      const mappedStatus = targetStatus === 'Completed' ? 'completed' : targetStatus === 'In Progress' ? 'in-progress' : 'todo';
+    // 3. Update currentTasksRef
+    currentTasksRef.current = currentTasksRef.current.map(t => t.id === taskId ? { ...t, status: mappedStatus } : t);
 
-      const res = await fetch(`/api/v1/tasks/${taskId}/status`, {
-        method: 'PATCH',
-        headers,
-        body: JSON.stringify({ status: mappedStatus }),
-      });
-
-      const resData = await res.json();
-      if (resData.success) {
-        invalidateClientCache(['tasks_list', 'dashboard_tasks', `project_detail_${rawProjectId}`]);
-        window.dispatchEvent(new Event('tasksUpdated'));
-      } else {
-        setAllTasks(previousTasks);
-      }
-    } catch (err) {
-      console.error('Failed to update task status:', err);
-      setAllTasks(previousTasks);
-    }
+    // 4. Enqueue into persistent sequential FIFO mutation queue for background database update
+    taskMutationQueue.enqueue({
+      projectId: rawProjectId,
+      taskId,
+      type: 'MOVE_STATUS',
+      payload: { status: mappedStatus },
+    });
   };
 
   // Edit Task States
   const [isEditTaskModalOpen, setIsEditTaskModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<TaskItem | null>(null);
 
-  const handleUpdateTask = async (updated: { id: string; title: string; priority: 'High Priority' | 'Medium Priority' | 'Low Priority'; comment?: string }) => {
-    const previousTasks = [...allTasks];
+  const handleUpdateTask = (updated: { id: string; title: string; priority: 'High Priority' | 'Medium Priority' | 'Low Priority'; comment?: string }) => {
+    const mappedPrio = updated.priority === 'High Priority' ? 'high' : updated.priority === 'Medium Priority' ? 'medium' : 'low';
+
+    // 1. Update React state immediately
     setAllTasks(prev => prev.map(t => t.id === updated.id ? { 
       ...t, 
       title: updated.title, 
@@ -331,69 +346,52 @@ export default function ProjectDetailsPage() {
       comment: updated.comment || t.comment 
     } : t));
 
-    try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (token) headers['Authorization'] = `Bearer ${token}`;
+    // 2. Persist directly to local storage / computer cache immediately
+    clientCache.updateTaskInCache(rawProjectId, updated.id, {
+      title: updated.title,
+      priority: mappedPrio,
+      description: updated.comment || '',
+    });
 
-      const mappedPrio = updated.priority === 'High Priority' ? 'high' : updated.priority === 'Medium Priority' ? 'medium' : 'low';
+    currentTasksRef.current = currentTasksRef.current.map(t => t.id === updated.id ? {
+      ...t,
+      title: updated.title,
+      priority: mappedPrio,
+      description: updated.comment || '',
+    } : t);
 
-      const res = await fetch(`/api/v1/tasks/${updated.id}`, {
-        method: 'PATCH',
-        headers,
-        body: JSON.stringify({
-          title: updated.title,
-          priority: mappedPrio,
-          description: updated.comment || '',
-        }),
-      });
-
-      const resData = await res.json();
-      if (resData.success) {
-        invalidateClientCache(['tasks_list', 'dashboard_tasks', `project_detail_${rawProjectId}`]);
-        window.dispatchEvent(new Event('tasksUpdated'));
-      } else {
-        setAllTasks(previousTasks);
-      }
-    } catch (err) {
-      console.error('Failed to update task:', err);
-      setAllTasks(previousTasks);
-    }
+    // 3. Enqueue mutation in sequential FIFO queue
+    taskMutationQueue.enqueue({
+      projectId: rawProjectId,
+      taskId: updated.id,
+      type: 'UPDATE_TASK',
+      payload: {
+        title: updated.title,
+        priority: mappedPrio,
+        description: updated.comment || '',
+      },
+    });
   };
 
-  const handleDeleteTask = async (taskId: string) => {
-    const previousTasks = [...allTasks];
+  const handleDeleteTask = (taskId: string) => {
+    // 1. Update React state immediately
     setAllTasks(prev => prev.filter(t => t.id !== taskId));
 
-    try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (token) headers['Authorization'] = `Bearer ${token}`;
+    // 2. Persist directly to local storage / computer cache immediately
+    clientCache.deleteTaskFromCache(rawProjectId, taskId);
+    currentTasksRef.current = currentTasksRef.current.filter(t => t.id !== taskId);
 
-      const res = await fetch(`/api/v1/tasks/${taskId}`, {
-        method: 'DELETE',
-        headers,
-      });
-
-      if (res.ok) {
-        invalidateClientCache(['tasks_list', 'dashboard_tasks', `project_detail_${rawProjectId}`]);
-        window.dispatchEvent(new Event('tasksUpdated'));
-      } else {
-        setAllTasks(previousTasks);
-      }
-    } catch (err) {
-      console.error('Failed to delete task:', err);
-      setAllTasks(previousTasks);
-    }
+    // 3. Enqueue mutation in sequential FIFO queue
+    taskMutationQueue.enqueue({
+      projectId: rawProjectId,
+      taskId,
+      type: 'DELETE_TASK',
+      payload: {},
+    });
   };
 
   // Credentials States
-  const [credentials, setCredentials] = useState<CredentialItem[]>(() => {
-    if (typeof window !== 'undefined' && rawProjectId) {
-      return clientCache.get<CredentialItem[]>(`credentials_${rawProjectId}`).data || [];
-    }
-    return [];
-  });
+  const [credentials, setCredentials] = useState<CredentialItem[]>([]);
   const [isCredentialModalOpen, setIsCredentialModalOpen] = useState(false);
   const [visibleFields, setVisibleFields] = useState<Record<string, boolean>>({});
 
@@ -468,12 +466,7 @@ export default function ProjectDetailsPage() {
   const inProgressTasks = allTasks.filter(t => t.status === 'In Progress');
   const completedTasksState = allTasks.filter(t => t.status === 'Completed');
 
-  const [notes, setNotes] = useState<NoteItem[]>(() => {
-    if (typeof window !== 'undefined' && rawProjectId) {
-      return clientCache.get<NoteItem[]>(`notes_${rawProjectId}`).data || [];
-    }
-    return [];
-  });
+  const [notes, setNotes] = useState<NoteItem[]>([]);
   const selectedNote = notes.find(n => n.id === selectedNoteId) || notes[0];
 
   const handleAddNewNote = async () => {
@@ -702,7 +695,25 @@ export default function ProjectDetailsPage() {
             <span>Notes</span>
           </button>
 
-
+          {/* Sync Status Badge (Local-First Queue Indicator) */}
+          <div className="ml-auto hidden sm:flex items-center gap-2 px-3.5 py-2 rounded-xl border-2 border-black bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-xs font-black">
+            {syncStatus === 'syncing' ? (
+              <>
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping" />
+                <span className="text-zinc-800">Syncing {pendingCount} {pendingCount === 1 ? 'task' : 'tasks'}...</span>
+              </>
+            ) : syncStatus === 'offline' ? (
+              <>
+                <span className="w-2.5 h-2.5 rounded-full bg-zinc-400" />
+                <span className="text-zinc-600">Saved locally (offline)</span>
+              </>
+            ) : (
+              <>
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                <span className="text-zinc-800">Saved locally & synced</span>
+              </>
+            )}
+          </div>
         </div>
 
         {/* ========================================================================= */}
@@ -1268,7 +1279,29 @@ export default function ProjectDetailsPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-200">
-                    {credentials.map((cred) => (
+                    {credentials.length === 0 ? (
+                      <tr>
+                        <td colSpan={4} className="px-5 py-12 text-center">
+                          <div className="flex flex-col items-center justify-center space-y-3">
+                            <div className="w-12 h-12 bg-[#F3E8FF] border-2 border-black rounded-xl flex items-center justify-center text-[#7C3AED] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                              <Key className="w-6 h-6 stroke-[2.5]" />
+                            </div>
+                            <div className="font-black text-sm text-black">No credentials stored for this project</div>
+                            <p className="text-xs font-bold text-zinc-500 max-w-sm">
+                              Keep your project API keys, tokens, and secrets safe, isolated, and accessible only to you in this project.
+                            </p>
+                            <button
+                              onClick={() => setIsCredentialModalOpen(true)}
+                              className="bg-[#C4B5FD] hover:bg-[#B7A5F7] text-black font-black text-xs px-4 py-2 rounded-xl border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all flex items-center gap-2 cursor-pointer mt-2"
+                            >
+                              <Plus className="w-4 h-4 stroke-[3]" />
+                              <span>Add Credential</span>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : (
+                      credentials.map((cred) => (
                       <tr key={cred.id} className="hover:bg-zinc-50/60 transition-colors">
                         <td className="px-5 py-4 space-y-2">
                           <div className="font-black text-sm text-black">{cred.title}</div>
@@ -1345,7 +1378,8 @@ export default function ProjectDetailsPage() {
                           </button>
                         </td>
                       </tr>
-                    ))}
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>

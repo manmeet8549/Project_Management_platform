@@ -110,18 +110,7 @@ export default function ProjectsPage() {
   const currentProjectsRef = React.useRef<RawProjectApiItem[]>([]);
   const currentTasksRef = React.useRef<RawTaskApiItem[]>([]);
 
-  const [projects, setProjects] = useState<ProjectCardData[]>(() => {
-    if (typeof window !== 'undefined') {
-      const cachedProjects = clientCache.get<RawProjectApiItem[]>('projects_list').data;
-      const cachedTasks = clientCache.get<RawTaskApiItem[]>('tasks_list').data;
-      if (cachedProjects && cachedProjects.length > 0) {
-        currentProjectsRef.current = cachedProjects;
-        currentTasksRef.current = cachedTasks || [];
-        return formatProjectCards(cachedProjects, cachedTasks || []);
-      }
-    }
-    return [];
-  });
+  const [projects, setProjects] = useState<ProjectCardData[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'All' | 'In Progress' | 'Planning' | 'On Hold' | 'Completed'>('All');
   const [sortFilter, setSortFilter] = useState<'Recent' | 'Title' | 'Percentage'>('Recent');

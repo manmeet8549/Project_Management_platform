@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs';
 import { prisma } from './prisma';
+import { Prisma } from '@prisma/client';
 import { apiCache } from '../cache/cache';
 
 export interface UserRecord {
@@ -234,111 +235,9 @@ class DatabaseStore {
 
   private memoryTasks: TaskRecord[] = [];
 
-  private memoryCredentials: CredentialRecord[] = [
-    {
-      id: 'c-1',
-      title: 'Supabase Database & Storage',
-      category: 'Database & Auth',
-      categoryBg: 'bg-[#DCFCE7] text-[#15803D]',
-      addedOn: 'May 20, 2025',
-      fields: [
-        { name: 'Project URL', value: 'https://abcxyz.supabase.co' },
-        { name: 'Anon Key', value: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSJ9...' },
-        { name: 'Service Role Key', value: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1zZXJ2aWNlIn0...' },
-        { name: 'Database Password', value: 'SuperSecretDBPass2025!' },
-      ],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-    {
-      id: 'c-2',
-      title: 'Stripe Payment Gateway',
-      category: 'Payment API',
-      categoryBg: 'bg-[#F3E8FF] text-[#7C3AED]',
-      addedOn: 'May 18, 2025',
-      fields: [
-        { name: 'Publishable Key', value: 'pk_test_51MzXYZ1234567890abcdef...' },
-        { name: 'Secret Key', value: 'sk_test_51MzXYZ9876543210fedcba...' },
-        { name: 'Webhook Signing Secret', value: 'whsec_9876543210abcdef...' },
-      ],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-    {
-      id: 'c-3',
-      title: 'NVIDIA AI NIM Engine',
-      category: 'AI Model Service',
-      categoryBg: 'bg-[#FFEAEA] text-[#B91C1C]',
-      addedOn: 'May 22, 2025',
-      fields: [
-        { name: 'API Key', value: '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' },
-        { name: 'Endpoint URL', value: 'https://integrate.api.nvidia.com/v1/chat/completions' },
-        { name: 'Model Name', value: 'meta/llama-3.2-11b-vision-instruct' },
-      ],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-  ];
+  private memoryCredentials: CredentialRecord[] = [];
 
-  private memoryNotes: NoteRecord[] = [
-    {
-      id: 'n-1',
-      title: 'Project Kickoff & Requirements',
-      excerpt: 'Key alignment points from the initial stakeholder kickoff meeting...',
-      date: 'May 20, 2025',
-      updated: 'Updated 2 days ago',
-      sections: [
-        {
-          heading: '1. Key Objectives',
-          items: [
-            'Aligned on neobrutalist design system with high contrast borders.',
-            'Target launch date confirmed for August 30, 2025.',
-            'Weekly milestone checks scheduled for every Tuesday.'
-          ]
-        }
-      ],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-    {
-      id: 'n-2',
-      title: 'Database Schema & Architecture Ideas',
-      excerpt: 'Initial thoughts on how to structure the database and user tables...',
-      date: 'May 18, 2025',
-      updated: 'Updated 4 days ago',
-      sections: [
-        {
-          heading: '1. Core Tables',
-          items: [
-            'users (id, email, name, role, password_hash, created_at)',
-            'projects (id, title, description, category, status, due_date)',
-            'tasks (id, project_id, title, priority, status, assignee_id)'
-          ]
-        }
-      ],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-    {
-      id: 'n-3',
-      title: 'Deployment & Launch Checklist',
-      excerpt: 'Steps to deploy the application to production environment...',
-      date: 'May 10, 2025',
-      updated: 'Updated 2 weeks ago',
-      sections: [
-        {
-          heading: '1. Checklist Items',
-          items: [
-            'Configure environment variables on Vercel.',
-            'Run automated TypeScript and lint verification.',
-            'Verify SSL certificates and custom domain DNS.'
-          ]
-        }
-      ],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-  ];
+  private memoryNotes: NoteRecord[] = [];
 
   private isPostgresConfigured(): boolean {
     return Boolean(
@@ -1448,9 +1347,50 @@ class DatabaseStore {
     const cached = apiCache.get<CredentialRecord[]>(cacheKey);
     if (cached) return cached;
 
+    if (this.isPostgresConfigured()) {
+      try {
+        const where: Record<string, unknown> = {};
+        if (query?.userId) where.userId = query.userId;
+        if (query?.projectId) where.projectId = query.projectId;
+        if (query?.category) where.category = { contains: query.category, mode: 'insensitive' };
+        if (query?.search) {
+          where.OR = [
+            { title: { contains: query.search, mode: 'insensitive' } },
+            { category: { contains: query.search, mode: 'insensitive' } },
+          ];
+        }
+
+        const creds = await prisma.credential.findMany({
+          where,
+          orderBy: { createdAt: 'desc' },
+        });
+
+        const mapped: CredentialRecord[] = creds.map(c => ({
+          id: c.id,
+          projectId: c.projectId,
+          userId: c.userId,
+          title: c.title,
+          category: c.category,
+          categoryBg: c.categoryBg || 'bg-[#DCFCE7] text-[#15803D]',
+          addedOn: c.addedOn,
+          fields: (Array.isArray(c.fields) ? c.fields : []) as unknown as CredentialField[],
+          createdAt: c.createdAt.toISOString(),
+          updatedAt: c.updatedAt.toISOString(),
+        }));
+
+        apiCache.set(cacheKey, mapped, 300, ['credentials']);
+        return mapped;
+      } catch (err) {
+        console.warn('Prisma credentials fetch failed, fallback to memory:', err);
+      }
+    }
+
     let res = [...this.memoryCredentials];
+    if (query?.userId) {
+      res = res.filter(c => c.userId === query.userId);
+    }
     if (query?.projectId) {
-      res = res.filter(c => !c.projectId || c.projectId === query.projectId);
+      res = res.filter(c => c.projectId === query.projectId);
     }
     if (query?.category) {
       res = res.filter(c => c.category.toLowerCase().includes(query.category!.toLowerCase()));
@@ -1463,13 +1403,67 @@ class DatabaseStore {
     return res;
   }
 
-  async getCredentialById(id: string): Promise<CredentialRecord | null> {
-    const found = this.memoryCredentials.find(c => c.id === id);
+  async getCredentialById(id: string, userId?: string): Promise<CredentialRecord | null> {
+    if (this.isPostgresConfigured()) {
+      try {
+        const where: Record<string, unknown> = { id };
+        if (userId) where.userId = userId;
+        const c = await prisma.credential.findFirst({ where });
+        if (c) {
+          return {
+            id: c.id,
+            projectId: c.projectId,
+            userId: c.userId,
+            title: c.title,
+            category: c.category,
+            categoryBg: c.categoryBg || 'bg-[#DCFCE7] text-[#15803D]',
+            addedOn: c.addedOn,
+            fields: (Array.isArray(c.fields) ? c.fields : []) as unknown as CredentialField[],
+            createdAt: c.createdAt.toISOString(),
+            updatedAt: c.updatedAt.toISOString(),
+          };
+        }
+      } catch (err) {
+        console.warn('Prisma getCredentialById failed:', err);
+      }
+    }
+
+    const found = this.memoryCredentials.find(c => c.id === id && (!userId || c.userId === userId));
     return found || null;
   }
 
   async createCredential(data: Partial<CredentialRecord>): Promise<CredentialRecord> {
     apiCache.invalidateTag('credentials');
+    if (this.isPostgresConfigured() && data.projectId && data.userId) {
+      try {
+        const cred = await prisma.credential.create({
+          data: {
+            projectId: data.projectId,
+            userId: data.userId,
+            title: data.title || 'Untitled Credential',
+            category: data.category || 'API Key & Secret',
+            categoryBg: data.categoryBg || 'bg-[#DCFCE7] text-[#15803D]',
+            addedOn: data.addedOn || new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+            fields: (data.fields || []) as unknown as Prisma.InputJsonValue,
+          },
+        });
+        return {
+          id: cred.id,
+          projectId: cred.projectId,
+          userId: cred.userId,
+          title: cred.title,
+          category: cred.category,
+          categoryBg: cred.categoryBg || 'bg-[#DCFCE7] text-[#15803D]',
+          addedOn: cred.addedOn,
+          fields: (Array.isArray(cred.fields) ? cred.fields : []) as unknown as CredentialField[],
+          createdAt: cred.createdAt.toISOString(),
+          updatedAt: cred.updatedAt.toISOString(),
+        };
+      } catch (err) {
+        console.warn('Prisma createCredential failed, fallback to memory:', err);
+      }
+    }
+
     const newCred: CredentialRecord = {
       id: `c-${Date.now()}`,
       projectId: data.projectId,
@@ -1486,9 +1480,44 @@ class DatabaseStore {
     return newCred;
   }
 
-  async updateCredential(id: string, data: Partial<CredentialRecord>): Promise<CredentialRecord | null> {
+  async updateCredential(id: string, data: Partial<CredentialRecord>, userId?: string): Promise<CredentialRecord | null> {
     apiCache.invalidateTag('credentials');
-    const index = this.memoryCredentials.findIndex(c => c.id === id);
+    if (this.isPostgresConfigured()) {
+      try {
+        const where: Record<string, unknown> = { id };
+        if (userId) where.userId = userId;
+        const exists = await prisma.credential.findFirst({ where });
+        if (!exists) return null;
+
+        const updateData: Record<string, unknown> = {};
+        if (data.title !== undefined) updateData.title = data.title;
+        if (data.category !== undefined) updateData.category = data.category;
+        if (data.categoryBg !== undefined) updateData.categoryBg = data.categoryBg;
+        if (data.fields !== undefined) updateData.fields = data.fields as unknown as Prisma.InputJsonValue;
+
+        const updated = await prisma.credential.update({
+          where: { id },
+          data: updateData,
+        });
+
+        return {
+          id: updated.id,
+          projectId: updated.projectId,
+          userId: updated.userId,
+          title: updated.title,
+          category: updated.category,
+          categoryBg: updated.categoryBg || 'bg-[#DCFCE7] text-[#15803D]',
+          addedOn: updated.addedOn,
+          fields: (Array.isArray(updated.fields) ? updated.fields : []) as unknown as CredentialField[],
+          createdAt: updated.createdAt.toISOString(),
+          updatedAt: updated.updatedAt.toISOString(),
+        };
+      } catch (err) {
+        console.warn('Prisma updateCredential failed:', err);
+      }
+    }
+
+    const index = this.memoryCredentials.findIndex(c => c.id === id && (!userId || c.userId === userId));
     if (index === -1) return null;
 
     const existing = this.memoryCredentials[index];
@@ -1502,9 +1531,23 @@ class DatabaseStore {
     return updated;
   }
 
-  async deleteCredential(id: string): Promise<boolean> {
+  async deleteCredential(id: string, userId?: string): Promise<boolean> {
     apiCache.invalidateTag('credentials');
-    const index = this.memoryCredentials.findIndex(c => c.id === id);
+    if (this.isPostgresConfigured()) {
+      try {
+        const where: Record<string, unknown> = { id };
+        if (userId) where.userId = userId;
+        const exists = await prisma.credential.findFirst({ where });
+        if (!exists) return false;
+
+        await prisma.credential.delete({ where: { id } });
+        return true;
+      } catch (err) {
+        console.warn('Prisma deleteCredential failed:', err);
+      }
+    }
+
+    const index = this.memoryCredentials.findIndex(c => c.id === id && (!userId || c.userId === userId));
     if (index === -1) return false;
     this.memoryCredentials.splice(index, 1);
     return true;
@@ -1516,9 +1559,49 @@ class DatabaseStore {
     const cached = apiCache.get<NoteRecord[]>(cacheKey);
     if (cached) return cached;
 
+    if (this.isPostgresConfigured()) {
+      try {
+        const where: Record<string, unknown> = {};
+        if (query?.userId) where.userId = query.userId;
+        if (query?.projectId) where.projectId = query.projectId;
+        if (query?.search) {
+          where.OR = [
+            { title: { contains: query.search, mode: 'insensitive' } },
+            { excerpt: { contains: query.search, mode: 'insensitive' } },
+          ];
+        }
+
+        const notes = await prisma.note.findMany({
+          where,
+          orderBy: { createdAt: 'desc' },
+        });
+
+        const mapped: NoteRecord[] = notes.map(n => ({
+          id: n.id,
+          projectId: n.projectId,
+          userId: n.userId,
+          title: n.title,
+          excerpt: n.excerpt,
+          date: n.date,
+          updated: n.updated,
+          sections: (Array.isArray(n.sections) ? n.sections : []) as unknown as NoteSection[],
+          createdAt: n.createdAt.toISOString(),
+          updatedAt: n.updatedAt.toISOString(),
+        }));
+
+        apiCache.set(cacheKey, mapped, 300, ['notes']);
+        return mapped;
+      } catch (err) {
+        console.warn('Prisma notes fetch failed, fallback to memory:', err);
+      }
+    }
+
     let res = [...this.memoryNotes];
+    if (query?.userId) {
+      res = res.filter(n => n.userId === query.userId);
+    }
     if (query?.projectId) {
-      res = res.filter(n => !n.projectId || n.projectId === query.projectId);
+      res = res.filter(n => n.projectId === query.projectId);
     }
     if (query?.search) {
       const q = query.search.toLowerCase();
@@ -1528,13 +1611,73 @@ class DatabaseStore {
     return res;
   }
 
-  async getNoteById(id: string): Promise<NoteRecord | null> {
-    const found = this.memoryNotes.find(n => n.id === id);
+  async getNoteById(id: string, userId?: string): Promise<NoteRecord | null> {
+    if (this.isPostgresConfigured()) {
+      try {
+        const where: Record<string, unknown> = { id };
+        if (userId) where.userId = userId;
+        const n = await prisma.note.findFirst({ where });
+        if (n) {
+          return {
+            id: n.id,
+            projectId: n.projectId,
+            userId: n.userId,
+            title: n.title,
+            excerpt: n.excerpt,
+            date: n.date,
+            updated: n.updated,
+            sections: (Array.isArray(n.sections) ? n.sections : []) as unknown as NoteSection[],
+            createdAt: n.createdAt.toISOString(),
+            updatedAt: n.updatedAt.toISOString(),
+          };
+        }
+      } catch (err) {
+        console.warn('Prisma getNoteById failed:', err);
+      }
+    }
+
+    const found = this.memoryNotes.find(n => n.id === id && (!userId || n.userId === userId));
     return found || null;
   }
 
   async createNote(data: Partial<NoteRecord>): Promise<NoteRecord> {
     apiCache.invalidateTag('notes');
+    if (this.isPostgresConfigured() && data.projectId && data.userId) {
+      try {
+        const note = await prisma.note.create({
+          data: {
+            projectId: data.projectId,
+            userId: data.userId,
+            title: data.title || 'Untitled Note',
+            excerpt: data.excerpt || 'New project note created.',
+            date: data.date || new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+            updated: 'Just now',
+            sections: (data.sections || [
+              {
+                heading: '1. Note Content',
+                items: [data.excerpt || 'Project note details and specifications.'],
+              },
+            ]) as unknown as Prisma.InputJsonValue,
+          },
+        });
+
+        return {
+          id: note.id,
+          projectId: note.projectId,
+          userId: note.userId,
+          title: note.title,
+          excerpt: note.excerpt,
+          date: note.date,
+          updated: note.updated,
+          sections: (Array.isArray(note.sections) ? note.sections : []) as unknown as NoteSection[],
+          createdAt: note.createdAt.toISOString(),
+          updatedAt: note.updatedAt.toISOString(),
+        };
+      } catch (err) {
+        console.warn('Prisma createNote failed, fallback to memory:', err);
+      }
+    }
+
     const newNote: NoteRecord = {
       id: `n-${Date.now()}`,
       projectId: data.projectId,
@@ -1556,9 +1699,43 @@ class DatabaseStore {
     return newNote;
   }
 
-  async updateNote(id: string, data: Partial<NoteRecord>): Promise<NoteRecord | null> {
+  async updateNote(id: string, data: Partial<NoteRecord>, userId?: string): Promise<NoteRecord | null> {
     apiCache.invalidateTag('notes');
-    const index = this.memoryNotes.findIndex(n => n.id === id);
+    if (this.isPostgresConfigured()) {
+      try {
+        const where: Record<string, unknown> = { id };
+        if (userId) where.userId = userId;
+        const exists = await prisma.note.findFirst({ where });
+        if (!exists) return null;
+
+        const updateData: Record<string, unknown> = { updated: 'Just now' };
+        if (data.title !== undefined) updateData.title = data.title;
+        if (data.excerpt !== undefined) updateData.excerpt = data.excerpt;
+        if (data.sections !== undefined) updateData.sections = data.sections as unknown as Prisma.InputJsonValue;
+
+        const updated = await prisma.note.update({
+          where: { id },
+          data: updateData,
+        });
+
+        return {
+          id: updated.id,
+          projectId: updated.projectId,
+          userId: updated.userId,
+          title: updated.title,
+          excerpt: updated.excerpt,
+          date: updated.date,
+          updated: updated.updated,
+          sections: (Array.isArray(updated.sections) ? updated.sections : []) as unknown as NoteSection[],
+          createdAt: updated.createdAt.toISOString(),
+          updatedAt: updated.updatedAt.toISOString(),
+        };
+      } catch (err) {
+        console.warn('Prisma updateNote failed:', err);
+      }
+    }
+
+    const index = this.memoryNotes.findIndex(n => n.id === id && (!userId || n.userId === userId));
     if (index === -1) return null;
 
     const existing = this.memoryNotes[index];
@@ -1572,9 +1749,23 @@ class DatabaseStore {
     return updated;
   }
 
-  async deleteNote(id: string): Promise<boolean> {
+  async deleteNote(id: string, userId?: string): Promise<boolean> {
     apiCache.invalidateTag('notes');
-    const index = this.memoryNotes.findIndex(n => n.id === id);
+    if (this.isPostgresConfigured()) {
+      try {
+        const where: Record<string, unknown> = { id };
+        if (userId) where.userId = userId;
+        const exists = await prisma.note.findFirst({ where });
+        if (!exists) return false;
+
+        await prisma.note.delete({ where: { id } });
+        return true;
+      } catch (err) {
+        console.warn('Prisma deleteNote failed:', err);
+      }
+    }
+
+    const index = this.memoryNotes.findIndex(n => n.id === id && (!userId || n.userId === userId));
     if (index === -1) return false;
     this.memoryNotes.splice(index, 1);
     return true;

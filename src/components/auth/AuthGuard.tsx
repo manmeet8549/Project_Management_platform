@@ -36,29 +36,9 @@ export const useAuth = () => useContext(AuthContext);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [user, setUser] = useState<AuthUser | null>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const storedUser = localStorage.getItem('auth_user');
-        return storedUser ? JSON.parse(storedUser) : null;
-      } catch {
-        return null;
-      }
-    }
-    return null;
-  });
-  const [token, setToken] = useState<string | null>(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('auth_token');
-    }
-    return null;
-  });
-  const [isLoading, setIsLoading] = useState<boolean>(() => {
-    if (typeof window !== 'undefined') {
-      return !localStorage.getItem('auth_token');
-    }
-    return true;
-  });
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [token, setToken] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   // Check token on initial mount & pathname changes
   useEffect(() => {

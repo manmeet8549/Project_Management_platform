@@ -20,7 +20,7 @@ import {
   User as UserIcon
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { clientCache, fetchWithCache, invalidateClientCache } from '@/lib/client/clientCache';
+import { fetchWithCache, invalidateClientCache } from '@/lib/client/clientCache';
 
 interface ProjectApiItem {
   id: string;
@@ -88,18 +88,8 @@ export default function DashboardPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { user, logout } = useAuth();
 
-  const [projects, setProjects] = useState<ProjectApiItem[]>(() => {
-    if (typeof window !== 'undefined') {
-      return clientCache.get<ProjectApiItem[]>('dashboard_projects').data || [];
-    }
-    return [];
-  });
-  const [tasks, setTasks] = useState<TaskApiItem[]>(() => {
-    if (typeof window !== 'undefined') {
-      return clientCache.get<TaskApiItem[]>('dashboard_tasks').data || [];
-    }
-    return [];
-  });
+  const [projects, setProjects] = useState<ProjectApiItem[]>([]);
+  const [tasks, setTasks] = useState<TaskApiItem[]>([]);
 
   const fetchDashboardData = React.useCallback(async (forceRefresh = false) => {
     fetchWithCache<ProjectApiItem[]>('/api/v1/projects', 'dashboard_projects', (data) => {

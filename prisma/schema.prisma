@@ -47,8 +47,10 @@ model User {
   createdAt    DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime  @updatedAt @map("updated_at")
 
-  projects     Project[] @relation("UserProjects")
-  tasks        Task[]    @relation("UserTasks")
+  projects     Project[]    @relation("UserProjects")
+  tasks        Task[]       @relation("UserTasks")
+  credentials  Credential[] @relation("UserCredentials")
+  notes        Note[]       @relation("UserNotes")
 
   @@map("users")
 }
@@ -66,6 +68,8 @@ model Project {
 
   owner       User          @relation("UserProjects", fields: [ownerId], references: [id], onDelete: Cascade)
   tasks       Task[]        @relation("ProjectTasks")
+  credentials Credential[]  @relation("ProjectCredentials")
+  notes       Note[]        @relation("ProjectNotes")
 
   @@index([category])
   @@index([status])
@@ -91,4 +95,44 @@ model Task {
   @@index([assigneeId])
   @@index([status])
   @@map("tasks")
+}
+
+model Credential {
+  id          String   @id @default(uuid())
+  projectId   String   @map("project_id")
+  userId      String   @map("user_id")
+  title       String
+  category    String
+  categoryBg  String?  @map("category_bg")
+  addedOn     String   @map("added_on")
+  fields      Json     @default("[]")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  project     Project  @relation("ProjectCredentials", fields: [projectId], references: [id], onDelete: Cascade)
+  user        User     @relation("UserCredentials", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([userId])
+  @@map("credentials")
+}
+
+model Note {
+  id          String   @id @default(uuid())
+  projectId   String   @map("project_id")
+  userId      String   @map("user_id")
+  title       String
+  excerpt     String   @default("")
+  date        String
+  updated     String   @default("Just now")
+  sections    Json     @default("[]")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  project     Project  @relation("ProjectNotes", fields: [projectId], references: [id], onDelete: Cascade)
+  user        User     @relation("UserNotes", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([userId])
+  @@map("notes")
 }
