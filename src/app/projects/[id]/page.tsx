@@ -6,6 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { NewTaskModal } from '@/components/modals/NewTaskModal';
 import { EditTaskModal } from '@/components/modals/EditTaskModal';
 import { NewCredentialModal } from '@/components/modals/NewCredentialModal';
+import { NewNoteModal, NoteSectionItem } from '@/components/modals/NewNoteModal';
 import { ProjectSettingsModal } from '@/components/modals/ProjectSettingsModal';
 import { clientCache, fetchWithCache, invalidateClientCache } from '@/lib/client/clientCache';
 import { taskMutationQueue, areTaskListsEqual, SyncStatus } from '@/lib/client/mutationQueue';
@@ -467,13 +468,14 @@ export default function ProjectDetailsPage() {
   const completedTasksState = allTasks.filter(t => t.status === 'Completed');
 
   const [notes, setNotes] = useState<NoteItem[]>([]);
+  const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
   const selectedNote = notes.find(n => n.id === selectedNoteId) || notes[0];
 
-  const handleAddNewNote = async () => {
-    const title = prompt('Enter note title:');
-    if (!title) return;
-    const excerptText = prompt('Enter a short summary / description for this note:') || 'New project note created.';
-    
+  const handleCreateNote = async (newNote: {
+    title: string;
+    excerpt: string;
+    sections: NoteSectionItem[];
+  }) => {
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -484,15 +486,10 @@ export default function ProjectDetailsPage() {
         headers,
         body: JSON.stringify({
           projectId: rawProjectId,
-          title,
-          excerpt: excerptText,
+          title: newNote.title,
+          excerpt: newNote.excerpt,
           date: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
-          sections: [
-            {
-              heading: '1. Technical Specifications & Requirements',
-              items: ['Initial requirement statement', 'Review specs and checklist'],
-            },
-          ],
+          sections: newNote.sections,
         }),
       });
 
@@ -629,7 +626,7 @@ export default function ProjectDetailsPage() {
             <button 
               onClick={() => {
                 if (activeTab === 'notes') {
-                  handleAddNewNote();
+                  setIsNoteModalOpen(true);
                 } else if (activeTab === 'credentials') {
                   setIsCredentialModalOpen(true);
                 } else {
@@ -1137,7 +1134,7 @@ export default function ProjectDetailsPage() {
                 </div>
 
                 <button 
-                  onClick={handleAddNewNote}
+                  onClick={() => setIsNoteModalOpen(true)}
                   className="w-full bg-white hover:bg-[#FFFBEB] text-black font-extrabold text-xs py-3 rounded-xl border-2 border-black border-dashed shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <Plus className="w-4 h-4 stroke-[3]" />
@@ -1214,7 +1211,7 @@ export default function ProjectDetailsPage() {
                   </p>
                 </div>
                 <button
-                  onClick={handleAddNewNote}
+                  onClick={() => setIsNoteModalOpen(true)}
                   className="bg-[#FFD93D] hover:bg-[#FACC15] text-black font-black text-xs px-5 py-2.5 rounded-xl border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all flex items-center gap-2 cursor-pointer"
                 >
                   <Plus className="w-4 h-4 stroke-[3]" />
@@ -1255,7 +1252,7 @@ export default function ProjectDetailsPage() {
                       <Search className="w-4 h-4 stroke-[2.5]" />
                     </div>
                     <input 
-                      type="text"
+                      type="text" 
                       placeholder="Search credentials..."
                       className="w-full bg-white text-black font-bold text-xs sm:text-sm pl-9 pr-3 py-2.5 rounded-xl border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] focus:outline-none focus:ring-2 focus:ring-black placeholder:text-zinc-400"
                     />
@@ -1434,6 +1431,12 @@ export default function ProjectDetailsPage() {
         isOpen={isCredentialModalOpen}
         onClose={() => setIsCredentialModalOpen(false)}
         onSubmit={handleCreateCredential}
+      />
+
+      <NewNoteModal 
+        isOpen={isNoteModalOpen}
+        onClose={() => setIsNoteModalOpen(false)}
+        onSubmit={handleCreateNote}
       />
 
       <EditTaskModal 
