@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
@@ -28,6 +28,21 @@ export function FloatingDock() {
   const mouseX = useMotionValue(Infinity);
   const [isAiOpen, setIsAiOpen] = useState(false);
   const { user, logout } = useAuth();
+  const [isDesktop, setIsDesktop] = useState(false);
+
+  // Detect desktop view vs mobile/tablet view
+  useEffect(() => {
+    const checkDesktop = () => {
+      // Desktop: viewport width >= 1024px AND device has fine pointer with hover (mouse/trackpad)
+      const isWide = window.innerWidth >= 1024;
+      const hasFinePointer = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+      setIsDesktop(isWide && hasFinePointer);
+    };
+
+    checkDesktop();
+    window.addEventListener('resize', checkDesktop);
+    return () => window.removeEventListener('resize', checkDesktop);
+  }, []);
 
   // Do not render the floating dock or AI window on landing page or auth routes
   if (pathname === '/' || pathname.startsWith('/auth') || pathname.startsWith('/login') || pathname.startsWith('/signup')) return null;
@@ -65,50 +80,104 @@ export function FloatingDock() {
 
   return (
     <>
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 pointer-events-auto selection:bg-none">
-        <motion.nav 
-          onMouseMove={(e) => mouseX.set(e.pageX)}
-          onMouseLeave={() => mouseX.set(Infinity)}
-          className="bg-white/95 backdrop-blur-md border-3 border-black px-4 sm:px-6 rounded-full shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center gap-3 sm:gap-4.5 h-[84px] sm:h-[88px]"
-        >
-          {navItems.map((item) => (
-            <IconContainer 
-              key={item.href}
-              mouseX={mouseX}
-              title={item.title}
-              href={item.href}
-              icon={item.icon}
-              bgColor={item.bgColor}
-              textColor={item.textColor}
-              isActive={pathname === item.href}
-            />
-          ))}
+      <div 
+        className="fixed bottom-0 inset-x-0 z-50 pointer-events-none flex justify-center pb-4 sm:pb-6 px-3 selection:bg-none"
+        style={{
+          paddingBottom: 'max(1rem, env(safe-area-inset-bottom, 16px))',
+        }}
+      >
+        <div className="pointer-events-auto max-w-[calc(100vw-1.5rem)]">
+          {isDesktop ? (
+            /* ========================================================================= */
+            /* DESKTOP VIEW: Cursor-based spring magnification & animated hover tooltip  */
+            /* ========================================================================= */
+            <motion.nav 
+              onMouseMove={(e) => mouseX.set(e.pageX)}
+              onMouseLeave={() => mouseX.set(Infinity)}
+              className="bg-white/95 backdrop-blur-md border-3 border-black px-6 rounded-full shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center gap-4.5 h-[84px] sm:h-[88px]"
+            >
+              {navItems.map((item) => (
+                <DesktopIconContainer 
+                  key={item.href}
+                  mouseX={mouseX}
+                  title={item.title}
+                  href={item.href}
+                  icon={item.icon}
+                  bgColor={item.bgColor}
+                  textColor={item.textColor}
+                  isActive={pathname === item.href}
+                />
+              ))}
 
-          {/* Vertical Divider | */}
-          <div className="w-px h-6 bg-zinc-400 border-r border-black/30 mx-0.5 shrink-0" />
+              {/* Vertical Divider | */}
+              <div className="w-px h-6 bg-zinc-400 border-r border-black/30 mx-0.5 shrink-0" />
 
-          {/* AI Copilot Button */}
-          <IconContainer 
-            mouseX={mouseX}
-            title="AI Copilot"
-            onClick={() => setIsAiOpen(!isAiOpen)}
-            icon={Sparkles}
-            bgColor="bg-[#7C3AED]"
-            textColor="text-white"
-            isActive={isAiOpen}
-          />
+              {/* AI Copilot Button */}
+              <DesktopIconContainer 
+                mouseX={mouseX}
+                title="AI Copilot"
+                onClick={() => setIsAiOpen(!isAiOpen)}
+                icon={Sparkles}
+                bgColor="bg-[#7C3AED]"
+                textColor="text-white"
+                isActive={isAiOpen}
+              />
 
-          {/* Logout Button */}
-          <IconContainer 
-            mouseX={mouseX}
-            title={`Logout (${user?.name || 'User'})`}
-            onClick={logout}
-            icon={LogOut}
-            bgColor="bg-[#FF6B6B]"
-            textColor="text-white"
-            isActive={false}
-          />
-        </motion.nav>
+              {/* Logout Button */}
+              <DesktopIconContainer 
+                mouseX={mouseX}
+                title={`Logout (${user?.name || 'User'})`}
+                onClick={logout}
+                icon={LogOut}
+                bgColor="bg-[#FF6B6B]"
+                textColor="text-white"
+                isActive={false}
+              />
+            </motion.nav>
+          ) : (
+            /* ========================================================================= */
+            /* MOBILE & TAB VIEW: Normal interaction, no cursor animation, stable taps   */
+            /* ========================================================================= */
+            <nav 
+              className="bg-white/95 backdrop-blur-md border-3 border-black px-3.5 sm:px-5 rounded-full shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center gap-2.5 sm:gap-3.5 h-[58px] sm:h-[62px] touch-none"
+            >
+              {navItems.map((item) => (
+                <MobileIconContainer 
+                  key={item.href}
+                  title={item.title}
+                  href={item.href}
+                  icon={item.icon}
+                  bgColor={item.bgColor}
+                  textColor={item.textColor}
+                  isActive={pathname === item.href}
+                />
+              ))}
+
+              {/* Vertical Divider | */}
+              <div className="w-px h-5 bg-zinc-400 border-r border-black/30 mx-0.5 shrink-0" />
+
+              {/* AI Copilot Button */}
+              <MobileIconContainer 
+                title="AI Copilot"
+                onClick={() => setIsAiOpen(!isAiOpen)}
+                icon={Sparkles}
+                bgColor="bg-[#7C3AED]"
+                textColor="text-white"
+                isActive={isAiOpen}
+              />
+
+              {/* Logout Button */}
+              <MobileIconContainer 
+                title={`Logout (${user?.name || 'User'})`}
+                onClick={logout}
+                icon={LogOut}
+                bgColor="bg-[#FF6B6B]"
+                textColor="text-white"
+                isActive={false}
+              />
+            </nav>
+          )}
+        </div>
       </div>
 
       {/* Floating AI Copilot Window */}
@@ -117,7 +186,10 @@ export function FloatingDock() {
   );
 }
 
-function IconContainer({
+/**
+ * Desktop Icon Container with cursor magnification physics
+ */
+function DesktopIconContainer({
   mouseX,
   title,
   href,
@@ -216,11 +288,69 @@ function IconContainer({
 
   if (href) {
     return (
-      <Link href={href} className="relative">
+      <Link href={href} className="relative block">
         {content}
       </Link>
     );
   }
 
-  return <div className="relative">{content}</div>;
+  return <div className="relative block">{content}</div>;
+}
+
+/**
+ * Mobile & Tablet Icon Container without cursor animations for normal, seamless touch interaction
+ */
+function MobileIconContainer({
+  title,
+  href,
+  onClick,
+  icon: Icon,
+  bgColor,
+  textColor,
+  isActive,
+}: {
+  title: string;
+  href?: string;
+  onClick?: () => void;
+  icon: React.ComponentType<{ className?: string }>;
+  bgColor: string;
+  textColor: string;
+  isActive: boolean;
+}) {
+  const content = (
+    <div
+      onClick={onClick}
+      title={title}
+      aria-label={title}
+      className={cn(
+        "w-10 h-10 sm:w-11 sm:h-11 rounded-full border-2 border-black flex items-center justify-center relative shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-transform cursor-pointer shrink-0 select-none",
+        bgColor,
+        textColor,
+        isActive ? "border-3 ring-2 ring-black/20" : ""
+      )}
+    >
+      <div className="w-4.5 h-4.5 sm:w-5 sm:h-5 flex items-center justify-center">
+        <Icon className="w-full h-full stroke-[2.5]" />
+      </div>
+
+      {/* Active Indicator Dot */}
+      {isActive && (
+        <div className="w-1.5 h-1.5 bg-black rounded-full absolute -bottom-1.5 left-1/2 -translate-x-1/2" />
+      )}
+    </div>
+  );
+
+  if (href) {
+    return (
+      <Link href={href} className="relative block shrink-0" aria-label={title}>
+        {content}
+      </Link>
+    );
+  }
+
+  return (
+    <div className="relative block shrink-0">
+      {content}
+    </div>
+  );
 }

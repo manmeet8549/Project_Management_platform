@@ -27,14 +27,15 @@
 }
 
 @layer base {
-  html {
-    @apply overflow-x-hidden;
+  html,
+  body {
+    @apply overflow-x-hidden max-w-full;
   }
   * {
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground min-h-screen;
   }
 }
 
