@@ -15,28 +15,70 @@ function AuthCallbackContent() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let isMounted = true;
+
     async function processAuth() {
       try {
-        // 1. Get current session from Supabase client (handles both code exchange and hash tokens)
+        // Check if hash has access_token and refresh_token
+        if (typeof window !== 'undefined' && window.location.hash) {
+          const hashParams = new URLSearchParams(window.location.hash.substring(1));
+          const accessToken = hashParams.get('access_token');
+          const refreshToken = hashParams.get('refresh_token');
+
+          if (accessToken) {
+            // Set session directly in Supabase
+            if (refreshToken) {
+              await supabase.auth.setSession({
+                access_token: accessToken,
+                refresh_token: refreshToken,
+              });
+            }
+
+            // Decode JWT payload directly to avoid network roundtrip delays
+            try {
+              const base64Url = accessToken.split('.')[1];
+              const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+              const jsonPayload = decodeURIComponent(
+                atob(base64)
+                  .split('')
+                  .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+                  .join('')
+              );
+              const payload = JSON.parse(jsonPayload);
+              if (payload.email) {
+                const userEmail = payload.email;
+                const userName = payload.user_metadata?.full_name || payload.user_metadata?.name || userEmail.split('@')[0] || 'Google User';
+                if (isMounted) {
+                  await syncUserWithPlatformDirect(userEmail, userName);
+                  return;
+                }
+              }
+            } catch (jwtErr) {
+              console.warn('JWT direct decode fallback skipped:', jwtErr);
+            }
+          }
+        }
+
+        // 1. Get current session from Supabase client
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
         if (sessionError) {
           console.error('Supabase session error:', sessionError);
-          setError(sessionError.message || 'Failed to retrieve authenticated session.');
+          if (isMounted) setError(sessionError.message || 'Failed to retrieve authenticated session.');
           return;
         }
 
         if (!session || !session.user) {
-          // Listen for onAuthStateChange if session is still processing
-          const { data: authListener } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
-            if (currentSession?.user) {
+          // Listen for onAuthStateChange
+          const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, currentSession) => {
+            if (currentSession?.user && isMounted) {
               await syncUserWithPlatform(currentSession.user);
             }
           });
 
           // Timeout fallback
           setTimeout(() => {
-            if (!session?.user) {
+            if (isMounted && (!session || !session.user)) {
               setError('No authenticated session found. Please try signing in again.');
             }
           }, 6000);
@@ -46,19 +88,18 @@ function AuthCallbackContent() {
           };
         }
 
-        await syncUserWithPlatform(session.user);
+        if (isMounted) {
+          await syncUserWithPlatform(session.user);
+        }
       } catch (err: unknown) {
         console.error('OAuth callback error:', err);
         const msg = err instanceof Error ? err.message : 'An unexpected error occurred during Google sign-in.';
-        setError(msg);
+        if (isMounted) setError(msg);
       }
     }
 
-    async function syncUserWithPlatform(user: SupabaseUser) {
+    async function syncUserWithPlatformDirect(email: string, name: string) {
       setStatus('Syncing user profile with workspace...');
-
-      const email = user.email;
-      const name = (user.user_metadata?.full_name as string) || (user.user_metadata?.name as string) || email?.split('@')[0] || 'Google User';
 
       const res = await fetch('/api/v1/auth/oauth-callback', {
         method: 'POST',
@@ -68,7 +109,7 @@ function AuthCallbackContent() {
 
       const resData = await res.json();
       if (!res.ok || !resData.success) {
-        setError(resData.message || resData.error || 'Failed to synchronize user account.');
+        if (isMounted) setError(resData.message || resData.error || 'Failed to synchronize user account.');
         return;
       }
 
@@ -76,7 +117,19 @@ function AuthCallbackContent() {
       login(token, platformUser);
     }
 
+    async function syncUserWithPlatform(user: SupabaseUser) {
+      const email = user.email;
+      const name = (user.user_metadata?.full_name as string) || (user.user_metadata?.name as string) || email?.split('@')[0] || 'Google User';
+      if (email) {
+        await syncUserWithPlatformDirect(email, name);
+      }
+    }
+
     processAuth();
+
+    return () => {
+      isMounted = false;
+    };
   }, [login, router, searchParams]);
 
   return (

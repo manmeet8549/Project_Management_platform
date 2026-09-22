@@ -11,6 +11,7 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { analyzeDeadline } from '@/lib/deadline';
 
 export interface ProjectSettingsData {
   id: string;
@@ -248,6 +249,23 @@ export function ProjectSettingsModal({
                 onChange={(e) => setDueDate(e.target.value)}
                 className="w-full bg-white text-black font-bold text-xs sm:text-sm px-3 py-2 rounded-xl border-2 border-black shadow-[1.5px_1.5px_0px_0px_rgba(0,0,0,1)] focus:outline-none focus:ring-2 focus:ring-black cursor-pointer"
               />
+              {dueDate ? (() => {
+                const dl = analyzeDeadline(dueDate);
+                return (
+                  <div className="mt-1 flex items-center gap-1.5">
+                    <span className={cn(
+                      "text-[10px] font-black px-2 py-0.5 rounded border border-black/20 shadow-[1px_1px_0px_rgba(0,0,0,1)]",
+                      dl.bgColor,
+                      dl.textColor,
+                      dl.borderColor
+                    )}>
+                      {dl.remainingText} ({dl.formattedDate})
+                    </span>
+                  </div>
+                );
+              })() : (
+                <div className="text-[10px] font-bold text-zinc-400 mt-1">No due date set</div>
+              )}
             </div>
 
             <div className="pt-2">

@@ -2,6 +2,8 @@
 
 import React, { useState } from 'react';
 import { X, Sparkles, Folder } from 'lucide-react';
+import { analyzeDeadline } from '@/lib/deadline';
+import { cn } from '@/lib/utils';
 
 interface NewProjectModalProps {
   isOpen: boolean;
@@ -73,6 +75,21 @@ export function NewProjectModal({ isOpen, onClose, onSubmit }: NewProjectModalPr
                 onChange={(e) => setDueDate(e.target.value)}
                 className="w-full bg-white text-black font-bold text-xs sm:text-sm px-3 py-2 rounded-xl border-2 border-black shadow-[1.5px_1.5px_0px_0px_rgba(0,0,0,1)] focus:outline-none focus:ring-2 focus:ring-black"
               />
+              {dueDate && (() => {
+                const dl = analyzeDeadline(dueDate);
+                return (
+                  <div className="mt-1">
+                    <span className={cn(
+                      "inline-block text-[10px] font-black px-2 py-0.5 rounded border border-black/20 shadow-[1px_1px_0px_rgba(0,0,0,1)]",
+                      dl.bgColor,
+                      dl.textColor,
+                      dl.borderColor
+                    )}>
+                      {dl.remainingText}
+                    </span>
+                  </div>
+                );
+              })()}
             </div>
 
             <div className="space-y-1">

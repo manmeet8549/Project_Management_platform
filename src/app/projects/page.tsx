@@ -25,6 +25,7 @@ import { cn } from '@/lib/utils';
 import { NewProjectModal } from '@/components/modals/NewProjectModal';
 import { ProjectSettingsModal } from '@/components/modals/ProjectSettingsModal';
 import { clientCache, fetchWithCache, invalidateClientCache } from '@/lib/client/clientCache';
+import { analyzeDeadline } from '@/lib/deadline';
 
 interface ProjectCardData {
   id: string;
@@ -441,23 +442,38 @@ export default function ProjectsPage() {
                     </div>
                   </div>
 
-                  <div className="border-t border-zinc-200 pt-3.5 mt-5 flex items-center justify-between text-xs font-bold text-zinc-500">
-                    <div className="flex items-center gap-2 flex-wrap min-w-0">
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <Calendar className="w-3.5 h-3.5 text-zinc-600 stroke-[2.5]" />
-                        <span>Due: {project.dueDate}</span>
-                      </div>
-                      <span className="text-zinc-300">|</span>
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <Clock className="w-3.5 h-3.5 text-zinc-600 stroke-[2.5]" />
-                        <span>Updated: {project.updatedTime}</span>
-                      </div>
-                    </div>
+                  {(() => {
+                    const dl = analyzeDeadline(project.dueDate);
+                    return (
+                      <div className="border-t border-zinc-200 pt-3.5 mt-5 flex items-center justify-between text-xs font-bold text-zinc-500">
+                        <div className="flex items-center gap-2 flex-wrap min-w-0">
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <Calendar className="w-3.5 h-3.5 text-zinc-600 stroke-[2.5]" />
+                            <span>Due: {dl.formattedDate}</span>
+                          </div>
+                          {dl.hasDueDate && (
+                            <span className={cn(
+                              "text-[9px] font-black px-1.5 py-0.5 rounded border uppercase tracking-wider shrink-0",
+                              dl.bgColor,
+                              dl.textColor,
+                              dl.borderColor
+                            )}>
+                              {dl.badgeText}
+                            </span>
+                          )}
+                          <span className="text-zinc-300">|</span>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <Clock className="w-3.5 h-3.5 text-zinc-600 stroke-[2.5]" />
+                            <span>Updated: {project.updatedTime}</span>
+                          </div>
+                        </div>
 
-                    <Link href={`/projects/${project.id}`} className="w-8 h-8 bg-white border-2 border-black rounded-lg shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] inline-flex items-center justify-center hover:bg-zinc-100 active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all text-black shrink-0 cursor-pointer">
-                      <ArrowRight className="w-4 h-4 stroke-[3]" />
-                    </Link>
-                  </div>
+                        <Link href={`/projects/${project.id}`} className="w-8 h-8 bg-white border-2 border-black rounded-lg shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] inline-flex items-center justify-center hover:bg-zinc-100 active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all text-black shrink-0 cursor-pointer">
+                          <ArrowRight className="w-4 h-4 stroke-[3]" />
+                        </Link>
+                      </div>
+                    );
+                  })()}
                 </div>
               );
             })}
@@ -466,6 +482,7 @@ export default function ProjectsPage() {
           <div className="space-y-4 mb-10">
             {filteredProjects.map((project) => {
               const CatIcon = project.categoryIcon;
+              const dl = analyzeDeadline(project.dueDate);
               return (
                 <div 
                   key={project.id}
@@ -480,15 +497,28 @@ export default function ProjectsPage() {
                     </div>
                     <div>
                       <h3 className="font-black text-sm text-black">{project.title}</h3>
-                      <div className="flex items-center gap-2 text-[10px] text-zinc-400 font-bold mt-0.5">
-                        <span>Due: {project.dueDate}</span>
+                      <div className="flex items-center gap-2 text-[10px] text-zinc-400 font-bold mt-0.5 flex-wrap">
+                        <span>Due: {dl.formattedDate}</span>
+                        {dl.hasDueDate && (
+                          <>
+                            <span>•</span>
+                            <span className={cn(
+                              "text-[9px] font-black px-1.5 py-0.5 rounded border",
+                              dl.bgColor,
+                              dl.textColor,
+                              dl.borderColor
+                            )}>
+                              {dl.badgeText}
+                            </span>
+                          </>
+                        )}
                         <span>•</span>
                         <span>Updated: {project.updatedTime}</span>
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-4 justify-between sm:justify-end">
+                  <div className="flex items-center gap-3 justify-between sm:justify-end">
                     <span className={cn(
                       "px-2.5 py-0.5 rounded border border-black/20 text-[10px] font-black uppercase tracking-wider",
                       project.statusBg
@@ -503,9 +533,23 @@ export default function ProjectsPage() {
                       <span className="text-xs font-black text-black">{project.percentage}%</span>
                     </div>
 
-                    <Link href={`/projects/${project.id}`} className="w-7 h-7 bg-white border-2 border-black rounded-lg shadow-[1.5px_1.5px_0px_0px_rgba(0,0,0,1)] inline-flex items-center justify-center hover:bg-zinc-100 text-black cursor-pointer">
-                      <ArrowRight className="w-3.5 h-3.5 stroke-[2.5]" />
-                    </Link>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setSelectedSettingsProject(project);
+                        }}
+                        className="w-7 h-7 bg-white hover:bg-zinc-100 text-black rounded-lg border-2 border-black flex items-center justify-center cursor-pointer shadow-[1.5px_1.5px_0px_0px_rgba(0,0,0,1)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all"
+                        title="Project Settings"
+                      >
+                        <Settings className="w-3.5 h-3.5 stroke-[2.5]" />
+                      </button>
+
+                      <Link href={`/projects/${project.id}`} className="w-7 h-7 bg-white border-2 border-black rounded-lg shadow-[1.5px_1.5px_0px_0px_rgba(0,0,0,1)] inline-flex items-center justify-center hover:bg-zinc-100 text-black cursor-pointer">
+                        <ArrowRight className="w-3.5 h-3.5 stroke-[2.5]" />
+                      </Link>
+                    </div>
                   </div>
                 </div>
               );

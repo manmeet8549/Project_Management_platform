@@ -10,6 +10,7 @@ import { NewNoteModal, NoteSectionItem } from '@/components/modals/NewNoteModal'
 import { ProjectSettingsModal } from '@/components/modals/ProjectSettingsModal';
 import { clientCache, fetchWithCache, invalidateClientCache } from '@/lib/client/clientCache';
 import { taskMutationQueue, areTaskListsEqual, SyncStatus } from '@/lib/client/mutationQueue';
+import { analyzeDeadline } from '@/lib/deadline';
 import { motion } from 'framer-motion';
 import { 
   ArrowLeft, 
@@ -466,6 +467,7 @@ export default function ProjectDetailsPage() {
   const todoTasks = allTasks.filter(t => t.status === 'To Do');
   const inProgressTasks = allTasks.filter(t => t.status === 'In Progress');
   const completedTasksState = allTasks.filter(t => t.status === 'Completed');
+  const deadlineInfo = analyzeDeadline(projectDetail?.dueDate);
 
   const [notes, setNotes] = useState<NoteItem[]>([]);
   const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
@@ -568,12 +570,22 @@ export default function ProjectDetailsPage() {
             </div>
 
             <div>
-              <h1 className="text-3xl sm:text-4xl md:text-5xl font-black uppercase tracking-tight flex items-center gap-2">
-                <span>{projectDetail?.title || 'Project Workspace'}</span>
-                <span className="inline-block font-mono font-bold text-[#1E1B4B]/35 opacity-60 text-2xl md:text-3xl select-none">
-                  \ \ \
-                </span>
-              </h1>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-3xl sm:text-4xl md:text-5xl font-black uppercase tracking-tight flex items-center gap-2">
+                  <span>{projectDetail?.title || 'Project Workspace'}</span>
+                  <span className="inline-block font-mono font-bold text-[#1E1B4B]/35 opacity-60 text-2xl md:text-3xl select-none">
+                    \ \ \
+                  </span>
+                </h1>
+                <button
+                  type="button"
+                  onClick={() => setIsProjectSettingsOpen(true)}
+                  className="w-8 h-8 bg-white hover:bg-zinc-100 text-black rounded-lg border-2 border-black flex items-center justify-center cursor-pointer shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all ml-1 shrink-0"
+                  title="Edit Project / Set Target Due Date"
+                >
+                  <Settings className="w-4 h-4 stroke-[2.5]" />
+                </button>
+              </div>
               <p className="text-xs sm:text-sm font-bold text-zinc-600 mt-1.5 leading-relaxed">
                 {activeTab === 'activity'
                   ? "Track all the activities and changes happening in this project."
@@ -609,15 +621,37 @@ export default function ProjectDetailsPage() {
               </div>
             </div>
 
-            {/* Due Date Box */}
-            <div className="bg-white border-3 border-black p-3.5 rounded-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-zinc-50 border-2 border-black flex items-center justify-center text-zinc-700 shrink-0">
+            {/* Due Date Box (Clickable to edit deadline) */}
+            <div 
+              onClick={() => setIsProjectSettingsOpen(true)}
+              className="bg-white hover:bg-zinc-50 border-3 border-black p-3.5 rounded-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center gap-3 cursor-pointer active:translate-x-[1px] active:translate-y-[1px] active:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all group"
+              title="Click to edit project due date"
+            >
+              <div className={cn(
+                "w-9 h-9 rounded-lg border-2 border-black flex items-center justify-center shrink-0 shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] group-hover:scale-105 transition-transform",
+                deadlineInfo.bgColor,
+                deadlineInfo.textColor
+              )}>
                 <Calendar className="w-4 h-4 stroke-[2.5]" />
               </div>
               <div>
-                <div className="text-[10px] font-black uppercase text-zinc-400">Due Date</div>
-                <div className="text-xs sm:text-sm font-black text-[#B91C1C]">
-                  {projectDetail?.dueDate || 'No Due Date'}
+                <div className="text-[10px] font-black uppercase text-zinc-400 flex items-center gap-1">
+                  <span>Due Date</span>
+                  <Settings className="w-2.5 h-2.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs sm:text-sm font-black text-black">
+                    {deadlineInfo.formattedDate}
+                  </span>
+                  {deadlineInfo.hasDueDate && (
+                    <span className={cn(
+                      "text-[9px] font-black px-1.5 py-0.5 rounded border border-black/30 shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] uppercase tracking-wider",
+                      deadlineInfo.bgColor,
+                      deadlineInfo.textColor
+                    )}>
+                      {deadlineInfo.badgeText}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -1044,29 +1078,33 @@ export default function ProjectDetailsPage() {
                 <div className="space-y-2.5 text-xs font-bold">
                   <div className="flex items-center justify-between">
                     <span className="text-zinc-600">Total Tasks</span>
-                    <span className="font-black text-black">30</span>
+                    <span className="font-black text-black">{allTasks.length}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-zinc-600">Completed</span>
-                    <span className="font-black text-[#16A34A]">24</span>
+                    <span className="font-black text-[#16A34A]">{completedTasksState.length}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-zinc-600">In Progress</span>
-                    <span className="font-black text-[#D97706]">3</span>
+                    <span className="font-black text-[#D97706]">{inProgressTasks.length}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-zinc-600">To Do</span>
-                    <span className="font-black text-[#B91C1C]">6</span>
+                    <span className="font-black text-[#B91C1C]">{todoTasks.length}</span>
                   </div>
 
                   <div className="border-t border-zinc-200 pt-2.5 space-y-2.5">
                     <div className="flex items-center justify-between">
                       <span className="text-zinc-600">Completion Rate</span>
-                      <span className="font-black text-[#7C3AED] text-sm">80%</span>
+                      <span className="font-black text-[#7C3AED] text-sm">
+                        {allTasks.length > 0 ? Math.round((completedTasksState.length / allTasks.length) * 100) : 0}%
+                      </span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-zinc-600">Days Remaining</span>
-                      <span className="font-black text-[#B91C1C] text-sm">12 days</span>
+                      <span className="text-zinc-600">Deadline Status</span>
+                      <span className={cn("font-black text-xs sm:text-sm text-right", deadlineInfo.textColor)}>
+                        {deadlineInfo.remainingText}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -1397,7 +1435,9 @@ export default function ProjectDetailsPage() {
  
                 <div className="text-center">
                   <div className="text-[10px] font-black uppercase text-zinc-500">Last Updated</div>
-                  <div className="text-xs font-black text-black mt-1">May 22, 2025</div>
+                  <div className="text-xs font-black text-black mt-1">
+                    {credentials.length > 0 && credentials[0].addedOn ? credentials[0].addedOn : 'Today'}
+                  </div>
                 </div>
               </div>
 

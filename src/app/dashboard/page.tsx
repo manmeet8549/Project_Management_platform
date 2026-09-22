@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { fetchWithCache, invalidateClientCache } from '@/lib/client/clientCache';
+import { analyzeDeadline } from '@/lib/deadline';
 
 interface ProjectApiItem {
   id: string;
@@ -159,11 +160,15 @@ export default function DashboardPage() {
   const onHoldProjects = projects.filter(p => p.status === 'on-hold' || p.status === 'on_hold').length;
   const planningProjects = projects.filter(p => p.status === 'planning').length;
 
-  // Upcoming Deadlines
+  // Upcoming Deadlines (Sorted chronologically by date ascending)
   const upcomingItems = [
-    ...projects.filter(p => p.dueDate).map(p => ({ id: p.id, name: p.title, date: p.dueDate, type: 'project' })),
-    ...tasks.filter(t => t.dueDate).map(t => ({ id: t.id, name: t.title, date: t.dueDate, type: 'task' }))
-  ].slice(0, 5);
+    ...projects.filter(p => p.dueDate).map(p => ({ id: p.id, name: p.title, date: p.dueDate as string, type: 'project' as const })),
+    ...tasks.filter(t => t.dueDate && t.status !== 'done' && t.status !== 'completed').map(t => ({ id: t.id, name: t.title, date: t.dueDate as string, type: 'task' as const }))
+  ].sort((a, b) => {
+    const da = new Date(a.date).getTime();
+    const db = new Date(b.date).getTime();
+    return (isNaN(da) ? 0 : da) - (isNaN(db) ? 0 : db);
+  }).slice(0, 5);
 
   // Recent Activities
   const recentActivities = [
@@ -226,8 +231,13 @@ export default function DashboardPage() {
     {
       title: 'Upcoming Deadlines',
       value: upcomingItems.length.toString(),
-      subtext: upcomingItems[0] ? `Next: ${upcomingItems[0].date}` : 'No upcoming deadlines',
-      subtextColor: 'text-[#7C3AED]',
+      subtext: upcomingItems[0]
+        ? (() => {
+            const dl = analyzeDeadline(upcomingItems[0].date);
+            return `Next: ${dl.badgeText} (${dl.formattedDate})`;
+          })()
+        : 'No upcoming deadlines',
+      subtextColor: upcomingItems[0] && analyzeDeadline(upcomingItems[0].date).status === 'overdue' ? 'text-[#B91C1C]' : 'text-[#7C3AED]',
       icon: Calendar,
       iconBg: 'bg-[#C4B5FD]',
       iconColor: 'text-black',
@@ -456,17 +466,29 @@ export default function DashboardPage() {
           >
             <div className="space-y-3.5 py-1">
               {upcomingItems.length > 0 ? (
-                upcomingItems.map((item, idx) => (
-                  <div key={idx} className="flex items-center justify-between border-b border-zinc-150 pb-2.5 last:border-0 last:pb-0 text-xs">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <span className={cn("w-2.5 h-2.5 rounded-full border border-black shrink-0", item.type === 'project' ? "bg-[#FF6B6B]" : "bg-[#FFD93D]")} />
-                      <span className="font-extrabold text-black truncate">{item.name}</span>
+                upcomingItems.map((item, idx) => {
+                  const dl = analyzeDeadline(item.date);
+                  return (
+                    <div key={idx} className="flex items-center justify-between border-b border-zinc-150 pb-2.5 last:border-0 last:pb-0 text-xs gap-2">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className={cn("w-2.5 h-2.5 rounded-full border border-black shrink-0", item.type === 'project' ? "bg-[#FF6B6B]" : "bg-[#FFD93D]")} />
+                        <span className="font-extrabold text-black truncate" title={item.name}>{item.name}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span className="text-[10px] font-bold text-zinc-500 hidden sm:inline">
+                          {dl.formattedDate}
+                        </span>
+                        <span className={cn(
+                          "border-2 border-black font-black text-[10px] px-2 py-0.5 rounded-md shadow-[1px_1px_0px_rgba(0,0,0,1)] shrink-0",
+                          dl.bgColor,
+                          dl.textColor
+                        )}>
+                          {dl.badgeText}
+                        </span>
+                      </div>
                     </div>
-                    <span className="bg-[#FFEAEA] border-2 border-black text-[#B91C1C] font-black text-[10px] px-2.5 py-0.5 rounded-md shadow-[1.5px_1.5px_0px_rgba(0,0,0,1)] shrink-0">
-                      {item.date}
-                    </span>
-                  </div>
-                ))
+                  );
+                })
               ) : (
                 <div className="text-xs font-bold text-zinc-500 italic py-6 text-center">
                   No upcoming deadlines found in database.

@@ -42,6 +42,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Check token on initial mount & pathname changes
   useEffect(() => {
+    // If OAuth returned to root or any page with hash access_token, route to /auth/callback
+    if (typeof window !== 'undefined' && window.location.hash.includes('access_token=')) {
+      router.replace(`/auth/callback${window.location.hash}`);
+      return;
+    }
+
     const storedToken = localStorage.getItem('auth_token');
     const storedUser = localStorage.getItem('auth_user');
 
@@ -62,7 +68,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(null);
     }
     setIsLoading(false);
-  }, []);
+  }, [router]);
 
   // Protected route enforcement
   useEffect(() => {
